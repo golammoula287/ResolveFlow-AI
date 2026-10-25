@@ -1,0 +1,27 @@
+{
+  "name": "resolveflow-ai",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web 'npm run dev -w apps/api' 'npm run dev -w apps/web'",
+    "build": "npm run build --workspaces",
+    "test": "npm run test -w apps/api",
+    "db:generate": "npm run db:generate -w apps/api",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "test:db": "node scripts/test-db.mjs",
+    "test:e2e": "node scripts/test-db.mjs --browser",
+    "dev:local": "node scripts/dev-local.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "concurrently": "^9.2.0",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "prettier": "^3.9.10"
+  },
+  "overrides": {
+    "effect": "^3.20.0",
+    "deepmerge-ts": "^8.0.0"
+  }
+}

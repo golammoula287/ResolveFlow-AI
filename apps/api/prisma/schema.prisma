@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  OWNER
+  AGENT
+  VIEWER
+}
+enum Status {
+  OPEN
+  PENDING
+  RESOLVED
+}
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  passwordHash String
+  memberships Membership[]
+}
+model Workspace {
+  id String @id @default(cuid())
+  name String
+  memberships Membership[]
+  tickets Ticket[]
+  events AuditEvent[]
+  invitations Invitation[]
+}
+model Membership {
+  userId String
+  workspaceId String
+  role Role @default(AGENT)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@id([userId, workspaceId])
+  @@index([workspaceId])
+}
+model Ticket {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  subject String
+  customerEmail String
+  status Status @default(OPEN)
+  priority Priority @default(NORMAL)
+  assigneeId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages Message[]
+  @@unique([id, workspaceId])
+  @@index([workspaceId, createdAt])
+}
+model Message {
+  id String @id @default(cuid())
+  ticketId String
+  workspaceId String
+  ticket Ticket @relation(fields: [ticketId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  body String
+  authorId String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, ticketId])
+}
+model AuditEvent {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorId String
+  action String
+  resourceId String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, createdAt])
+}
+
+model Invitation {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  email String
+  role Role
+  tokenHash String @unique
+  expiresAt DateTime
+  acceptedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([workspaceId, email])
+}
