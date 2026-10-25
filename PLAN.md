@@ -17,14 +17,14 @@ Checked items below mean code or artifacts exist, not that an entire phase passe
 | Area | Repository state | Verification status |
 | --- | --- | --- |
 | Monorepo and configuration | React/Vite/TypeScript frontend, Express/TypeScript API, PostgreSQL Compose, environment examples, lockfile | Both builds passed in the preceding implementation turn |
-| Persistence | Prisma models and initial SQL migration | Client generation passed; all three migrations applied to persistent local PostgreSQL and disposable test PostgreSQL |
-| Accounts and roles | Registration, multiple workspaces, invitations, owner administration; cookie sign-in/out; request-time authorization | All 18 API/unit/database tests pass with no skips |
+| Persistence | Prisma models and initial SQL migration | Client generation passed; all four migrations applied to persistent local PostgreSQL and disposable test PostgreSQL |
+| Accounts and roles | Registration, multiple workspaces, invitations, owner administration; cookie sign-in/out; request-time authorization | All 19 API/unit/database tests pass with no skips |
 | Tickets | Create, list, search, paginate, detail, assignment, status/priority updates, internal notes | Database integration and two-session Chromium workflow passed |
 | Audit | Transactional events for ticket creation, edits and notes; scoped event list | Database integration passed |
 | CI | Workflow provisions PostgreSQL, migrates, builds and runs tests | Configuration exists; no remote passing run verified |
-| Knowledge and drafts | Approved text ingestion/search, optional provider embeddings and cited drafts, abstention, source withdrawal and telemetry | 18 API/unit/database tests and two browser workflows pass; live provider quality unverified; review/delivery/workers pending |
+| Knowledge and drafts | Approved text ingestion/search, optional provider embeddings and cited drafts, abstention, source withdrawal and telemetry | 19 API/unit/database tests and three browser workflows pass; live provider quality unverified; review implemented; delivery/workers pending |
 
-A bundled development PostgreSQL runtime now enables local development and disposable database testing without Docker. All 18 API/unit/database tests passed against PostgreSQL with no skips; all three migrations applied. Latest dependency installation reported zero vulnerabilities. Both Chromium workflows passed; remote CI is unverified.
+A bundled development PostgreSQL runtime now enables local development and disposable database testing without Docker. All 19 API/unit/database tests passed against PostgreSQL with no skips; all four migrations applied. Latest dependency installation reported zero vulnerabilities. All three Chromium workflows passed; remote CI is unverified.
 
 ## Phase 1 — Foundation and configuration
 
@@ -78,9 +78,9 @@ Start after the Phase 1 exit gate. Keep provider secrets server-side; use synthe
 
 ### 2C. Human review and approved delivery
 
-- [ ] Model draft edits, review state, approval/rejection, reviewer identity and rejection reasons.
-- [ ] Build the review queue and track the precise response version approved; edits must invalidate stale approval.
-- [ ] Authorize review actions and audit every transition.
+- [x] Model draft edits, review state, approval/rejection, reviewer identity and rejection reasons.
+- [x] Build the review queue and track the precise response version approved; edits must invalidate stale approval.
+- [x] Authorize review actions and audit every transition.
 - [ ] Add a configured delivery integration; require explicit approval for every external send under the initial policy.
 - [ ] Persist delivery attempts, outcomes and provider references; distinguish internal notes, drafts and delivered replies.
 
@@ -143,7 +143,7 @@ Freeze a synthetic test set, expected evidence and grading rubric before collect
 
 ## Immediate priority
 
-Continue Phase 2 with draft editing and human approval/rejection, followed by background jobs and delivery integrations. Configure a server-side AI key/model for live provider verification; the planned 50-case evaluation remains unrun. Knowledge ingestion/search and cited draft infrastructure are implemented and tested, but the full Phase 2 exit gate is unmet.
+Continue Phase 2 with background jobs, recoverable automation and an approved-delivery integration. Draft editing, immutable revisions, human approval/rejection and the workspace review queue are implemented and verified. Configure a server-side AI key/model for live provider verification; the planned 50-case evaluation remains unrun. Knowledge ingestion/search and cited draft infrastructure are implemented and tested, but the full Phase 2 exit gate is unmet.
 
 ## Provider decision — Groq
 User selected Groq. Use AI_PROVIDER=groq, GROQ_API_KEY and GROQ_MODEL (default openai/gpt-oss-20b on Groq). Groq draft generation uses approved lexical evidence and strict JSON schema output. Semantic indexing/search require a separate embedding provider and remain disabled in the Groq configuration. No OpenAI key is required or implicitly used. Contract tests cover the Groq endpoint, schema, token accounting, truncation, malformed output and failures; live calls remain unverified until a key is configured.

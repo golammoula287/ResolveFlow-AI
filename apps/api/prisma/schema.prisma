@@ -140,6 +140,16 @@ model Draft {
   citations Json
   createdBy String
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  version Int @default(1)
+  reviewedBy String?
+  reviewedAt DateTime?
+  approvedVersion Int?
+  rejectionReason String?
+  revisions DraftRevision[]
+  reviews DraftReview[]
+  @@unique([id, workspaceId])
+  @@index([workspaceId, status, updatedAt])
   @@index([workspaceId, ticketId, createdAt])
 }
 model AiRun {
@@ -156,4 +166,32 @@ model AiRun {
   errorCode String?
   createdAt DateTime @default(now())
   @@index([workspaceId, createdAt])
+}
+
+model DraftRevision {
+  id String @id @default(cuid())
+  draftId String
+  workspaceId String
+  draft Draft @relation(fields: [draftId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  version Int
+  body String
+  citations Json
+  changedBy String
+  createdAt DateTime @default(now())
+  reviews DraftReview[]
+  @@unique([draftId, workspaceId, version])
+}
+model DraftReview {
+  id String @id @default(cuid())
+  draftId String
+  workspaceId String
+  draft Draft @relation(fields: [draftId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  version Int
+  revision DraftRevision @relation(fields: [draftId, workspaceId, version], references: [draftId, workspaceId, version], onDelete: Cascade)
+  action String
+  actorId String
+  reason String?
+  bodyHash String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, draftId, createdAt])
 }

@@ -53,7 +53,7 @@ TEST_DATABASE_URL=postgresql://resolveflow:local_password@localhost:5433/resolve
 
 The integration test creates random fixture accounts and removes its own records. It checks two-tenant reads, search, mutations, notes, audit isolation, cross-tenant assignments, live role changes, invitation binding/expiry/revocation/single-use acceptance, final-owner protection, member removal and logout. CI provisions a separate PostgreSQL service, applies migrations, builds and runs both suites.
 
-Verified locally: both production builds pass, all three migrations apply to PostgreSQL, and all 18 API/unit/database tests pass with no skips. The latest dependency installation reported zero vulnerabilities. Both Chromium workflows also pass. Remote CI and deployment remain unverified.
+Verified locally: both production builds pass, all four migrations apply to PostgreSQL, and all 19 API/unit/database tests pass with no skips. The latest dependency installation reported zero vulnerabilities. All three Chromium workflows also pass. Remote CI and deployment remain unverified.
 
 ## Architecture and security
 
@@ -70,7 +70,7 @@ flowchart LR
 
 Membership and roles come from the database on every workspace request. Ticket and message queries carry the current workspace ID. Message foreign keys include the workspace ID. Password hashes remain server-side; JWT cookies expire after eight hours. Writes require an exact matching Origin. Production cookie security requires `NODE_ENV=production` and HTTPS. Login and registration have an in-memory rate limiter, which must be replaced with a shared store for multiple API instances. Logging out clears the browser cookie; stolen tokens remain valid until expiration. Individual session revocation is a remaining hardening task.
 
-Internal notes never send customer email. Knowledge ingestion, approval, search, provider integration and cited internal drafts are implemented as described below. Human draft approvals, customer delivery and background workers are not implemented yet. Invitations are created as tokens, displayed once to the owner for private sharing; this app does not send invitation emails. Tokens expire in seven days, are stored as SHA-256 hashes and can be revoked. Acceptance requires the invited account email. Account email verification and password recovery are not implemented. Workspace membership changes serialize on the workspace row to preserve the final owner. See [PLAN.md](PLAN.md) for the complete blueprint backlog and [CONTEXT.md](CONTEXT.md) for handoff context. This is not yet a production-ready advanced SaaS.
+Internal notes never send customer email. Knowledge ingestion, approval, search, provider integration and cited internal drafts are implemented as described below. Human draft editing and review approvals are implemented. Customer delivery and background workers are not implemented yet. Invitations are created as tokens, displayed once to the owner for private sharing; this app does not send invitation emails. Tokens expire in seven days, are stored as SHA-256 hashes and can be revoked. Acceptance requires the invited account email. Account email verification and password recovery are not implemented. Workspace membership changes serialize on the workspace row to preserve the final owner. See [PLAN.md](PLAN.md) for the complete blueprint backlog and [CONTEXT.md](CONTEXT.md) for handoff context. This is not yet a production-ready advanced SaaS.
 
 ## References
 
@@ -98,10 +98,22 @@ The optional OpenAI adapter remains available only when explicitly selected with
 
 Keys remain server-side. Draft requests send the initial ticket question and authorized evidence to the selected provider. Requests time out after 30 seconds, fail explicitly, and have an in-memory limit of 30 AI operations per IP per 15 minutes. Configure a shared limiter before multi-instance deployment. No embeddings or generated responses are simulated when credentials are missing.
 
-Open a ticket and choose **Generate draft**. The app retrieves approved evidence, validates returned source IDs and exact quotations, and saves an internal draft with source links. Missing evidence creates an abstention without a provider call; matching evidence with no provider configuration returns a configuration error. Claims may still misinterpret a valid quote: quotation validation is not proof of factual support. Human review is required, and review approvals/customer delivery are not yet implemented. Draft bodies and citations are hidden on subsequent reads if a cited document has been withdrawn or deleted.
+Open a ticket and choose **Generate draft**. The app retrieves approved evidence, validates returned source IDs and exact quotations, and saves an internal draft with source links. Missing evidence creates an abstention without a provider call; matching evidence with no provider configuration returns a configuration error. Claims may still misinterpret a valid quote: quotation validation is not proof of factual support. Human review is required. Review approvals are implemented; customer delivery is not yet implemented. Draft bodies and citations are hidden on subsequent reads if a cited document has been withdrawn or deleted.
 
 The knowledge screen shows recorded provider model, latency, token usage and failures. Monetary cost remains unknown (`null`), rather than an invented estimate. AI operations are synchronous in this release; job recovery and persisted ingestion failure states are pending.
 
-Verification: 18 API/unit/database tests and two Chromium workflows pass. Groq/OpenAI contract tests and database draft tests use explicit test doubles; browser tests force both providers’ credentials off. No paid provider calls or model-quality evaluation were performed. Full live AI quality remains unverified until configured and evaluated against the planned frozen dataset.
+Verification: 19 API/unit/database tests and three Chromium workflows pass. Groq/OpenAI contract tests and database draft tests use explicit test doubles; browser tests force both providers’ credentials off. No paid provider calls or model-quality evaluation were performed. Full live AI quality remains unverified until configured and evaluated against the planned frozen dataset.
 
 API implementation references: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses), [OpenAI embeddings](https://developers.openai.com/api/reference/resources/embeddings/methods/create).
+
+## Draft review
+
+The **Review queue** lists pending, approved, rejected and abstained drafts within the current workspace, with pagination and refresh. Owners and agents can edit and review; viewers can read. The same controls are available inside ticket detail. Approving a response does not send or queue a customer reply.
+
+Every changed edit creates an immutable revision and resets the draft to pending review. Approval requires explicit confirmation that the response was checked against its sources. Decisions record reviewer identity, time, version and a SHA-256 hash of the exact response. Rejection requires a reason. Saved revisions and previous decisions remain available through **View review history**. The initial migration backfills revision 1 for existing drafts.
+
+Requests must include the version being edited/reviewed; stale versions and duplicate or competing decisions are rejected. Workspace locking serializes edits, decisions and document withdrawal. Withdrawing or deleting a cited source clears current approval and records an invalidation event. Reapproving a source does not restore the draft's old approval. Abstentions cannot be edited into approved responses.
+
+Edited responses retain the original evidence references, which may no longer support the changed wording. The reviewer must check the complete edited response; no automatic semantic validation of human edits is claimed. Review revisions are immutable through the API, but a database administrator can still alter stored data. Review history is an application audit trail, not tamper-proof storage.
+
+The review database test covers tenant isolation, VIEWER denial, stale versions, concurrent review decisions, required reasons/confirmation, revision preservation, exact response hashes and source invalidation. The browser review test uses a clearly hand-authored synthetic database fixture; it does not simulate a paid model call in the app.

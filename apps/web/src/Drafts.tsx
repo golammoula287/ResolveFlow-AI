@@ -1,22 +1,5 @@
 import { useEffect, useState } from "react";
-type Api = (path: string, method?: string, data?: unknown) => Promise<any>;
-type Citation = {
-  chunkId: string;
-  documentId: string;
-  title: string;
-  version: number;
-  quote: string;
-  claim: string;
-};
-type Draft = {
-  id: string;
-  status: string;
-  body: string;
-  reason: string | null;
-  citations: Citation[];
-  createdAt: string;
-  sourcesAvailable?: boolean;
-};
+import { DraftCard, type Draft, type Api } from "./DraftCard";
 export function Drafts({
   base,
   ticketId,
@@ -30,9 +13,11 @@ export function Drafts({
 }) {
   const [drafts, setDrafts] = useState<Draft[]>([]),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [source, setSource] = useState<any>(null);
+    [error, setError] = useState("");
   const path = base + "/tickets/" + ticketId + "/drafts";
+  async function refresh() {
+    setDrafts(await api(path));
+  }
   useEffect(() => {
     let active = true;
     api(path)
@@ -51,7 +36,7 @@ export function Drafts({
     setError("");
     try {
       await api(path, "POST");
-      setDrafts(await api(path));
+      await refresh();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -69,8 +54,8 @@ export function Drafts({
         )}
       </div>
       <p className="hint">
-        Drafts remain internal. Check each claim and source before using a
-        response. Exact-quote checks do not prove that a claim is correct.
+        Drafts remain internal. Review every claim and cited passage. Approval
+        records your decision; it does not send a customer reply.
       </p>
       {error && (
         <div role="alert" className="error">
@@ -79,58 +64,15 @@ export function Drafts({
       )}
       {!drafts.length && <p className="hint">No drafts yet.</p>}
       {drafts.map((d) => (
-        <article className="draft-card" key={d.id}>
-          <span className="eyebrow">
-            {d.status === "ABSTAINED"
-              ? "INSUFFICIENT EVIDENCE"
-              : "UNREVIEWED DRAFT"}{" "}
-            · {new Date(d.createdAt).toLocaleString()}
-          </span>
-          {d.reason && <p>{d.reason}</p>}
-          {d.body && <p className="draft-body">{d.body}</p>}
-          {d.citations.map((c, i) => (
-            <details key={i}>
-              <summary>
-                {i + 1}. {c.title} · version {c.version}
-              </summary>
-              <blockquote>{c.quote}</blockquote>
-              <button
-                onClick={async () => {
-                  try {
-                    const document = await api(
-                      base + "/documents/" + c.documentId,
-                    );
-                    if (!document.approved)
-                      throw Error(
-                        "This source is no longer approved. Generate a new draft.",
-                      );
-                    setSource({ ...document, chunkId: c.chunkId });
-                  } catch (e) {
-                    setError((e as Error).message);
-                  }
-                }}
-              >
-                Open source passage
-              </button>
-            </details>
-          ))}
-        </article>
+        <DraftCard
+          key={d.id}
+          draft={d}
+          base={base}
+          writable={writable}
+          api={api}
+          reload={refresh}
+        />
       ))}
-      {source && (
-        <div className="source-inline">
-          <div className="team-heading">
-            <h4>
-              {source.title} · version {source.version}
-            </h4>
-            <button onClick={() => setSource(null)}>Close passage</button>
-          </div>
-          {source.chunks
-            .filter((c: any) => c.id === source.chunkId)
-            .map((c: any) => (
-              <p key={c.id}>{c.content}</p>
-            ))}
-        </div>
-      )}
     </section>
   );
 }

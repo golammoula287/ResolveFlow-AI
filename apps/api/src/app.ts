@@ -1,3 +1,4 @@
+import { reviewRoutes } from "./reviews.js";
 import { knowledgeRoutes } from "./knowledge.js";
 import { ServiceError, type AiProvider } from "./ai.js";
 import { workspaceRoutes } from "./workspaces.js";
@@ -163,6 +164,7 @@ export function createApp(
     next();
   });
   knowledgeRoutes(app, db, config.ai);
+  reviewRoutes(app, db);
   const base = "/api/workspaces/:workspaceId";
   app.get(base + "/tickets", async (req, res) => {
     const query = z

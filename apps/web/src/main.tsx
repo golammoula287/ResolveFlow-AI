@@ -1,3 +1,4 @@
+import { ReviewQueue } from "./ReviewQueue";
 import { Knowledge } from "./Knowledge";
 import { Drafts } from "./Drafts";
 import React, { useEffect, useState } from "react";
@@ -332,6 +333,13 @@ function App() {
             <Layers size={19} />
             Knowledge base
           </button>
+          <button
+            className={tab === "reviews" ? "active" : ""}
+            onClick={() => setTab("reviews")}
+          >
+            <ShieldCheck size={19} />
+            Review queue
+          </button>
         </nav>
         <div className="sidebar-note">
           <ShieldCheck size={22} />
@@ -368,7 +376,9 @@ function App() {
                 ? "People & workspaces"
                 : tab === "knowledge"
                   ? "Knowledge base"
-                  : "Activity log"}
+                  : tab === "reviews"
+                    ? "Review queue"
+                    : "Activity log"}
           </span>
           <span className="secure">
             <span /> Workspace connected
@@ -385,7 +395,9 @@ function App() {
                     ? "A place for your team."
                     : tab === "knowledge"
                       ? "Answers start with evidence."
-                      : "Every action, accounted for."}
+                      : tab === "reviews"
+                        ? "A human decision, every time."
+                        : "Every action, accounted for."}
               </h1>
               <p>
                 {tab === "inbox"
@@ -394,7 +406,9 @@ function App() {
                     ? "The right people, with the right access."
                     : tab === "knowledge"
                       ? "Give your team trusted sources for every conversation."
-                      : "A traceable history of your workspace’s support work."}
+                      : tab === "reviews"
+                        ? "Review the evidence before approving a response."
+                        : "A traceable history of your workspace’s support work."}
               </p>
             </div>
             {tab === "inbox" && writable && (
@@ -409,7 +423,14 @@ function App() {
               <button onClick={() => setError("")}>Dismiss</button>
             </div>
           )}
-          {tab === "knowledge" ? (
+          {tab === "reviews" ? (
+            <ReviewQueue
+              key={workspace}
+              workspace={workspace}
+              writable={writable}
+              api={api}
+            />
+          ) : tab === "knowledge" ? (
             <Knowledge
               key={workspace}
               workspace={workspace}

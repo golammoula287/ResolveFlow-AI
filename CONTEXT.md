@@ -57,3 +57,12 @@ The user requested scanning `/Users/golammoula/Downloads/ResolveFlow_AI_Advanced
 User chose Groq. Added a Groq Chat Completions adapter with strict structured output and default model openai/gpt-oss-20b, based on Groq official docs. AI_PROVIDER defaults to groq; server configuration uses GROQ_API_KEY/GROQ_MODEL. Local .env selects Groq without adding or displaying a key. Groq drafts use tenant-approved keyword evidence without calling an embedding provider. Semantic search/indexing are explicitly unavailable in this configuration. OpenAI remains an opt-in alternative only. Browser tests disable both provider keys; provider-contract and database tests use doubles. Live Groq calls are unverified because no key was supplied.
 
 Groq validation: production builds passed; all 18 API/unit/database tests passed without skips; both Chromium workflows passed. No live Groq request was made.
+
+## Draft review build — 2026-10-26
+- Added draft version/review metadata, immutable DraftRevision snapshots, DraftReview decision history and a migration that backfills revision 1 for existing drafts.
+- Added tenant-scoped paginated review queues and detail/history endpoints. OWNER/AGENT can edit/approve/reject; VIEWER reads only. Writes recheck membership under the workspace row lock.
+- Editing a changed response creates a revision, returns to DRAFT and clears approval. expectedVersion prevents stale edits/decisions; concurrent decisions serialize and only one succeeds. Approval requires explicit source-check confirmation; rejection requires a reason. Each review stores version, reviewer, timestamp and a hash of the exact response.
+- Source withdrawal/deletion automatically clears approvals and records invalidation. Reapproving a source never restores old approval. Missing-source bodies and revision contents are hidden on subsequent reads.
+- Added shared review controls to ticket details and the Review queue page, including editor, required confirmation/rejection reason, source inspection and revision/decision history. Human edits retain original evidence, requiring a fresh manual check.
+- Production builds, all 19 API/unit/database tests and all three Chromium workflows passed. Four migrations apply to disposable PostgreSQL. Browser review fixture is hand-authored synthetic data; no live provider call is made.
+- Next: Redis/BullMQ worker, idempotent approved delivery and rules automation. Approval currently never queues or sends a customer message. Groq remains selected; live provider/quality evaluation remains pending.

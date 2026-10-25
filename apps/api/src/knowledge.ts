@@ -1,3 +1,5 @@
+import { lockMember } from "./access.js";
+import { invalidateSourceApprovals } from "./reviews.js";
 import { rateLimit } from "express-rate-limit";
 import { createHash } from "node:crypto";
 import type { Express } from "express";
@@ -43,24 +45,6 @@ const documentInput = z
       ),
   })
   .strict();
-async function lockMember(
-  tx: Prisma.TransactionClient,
-  workspaceId: string,
-  userId: string,
-  owner = false,
-) {
-  await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id=${workspaceId} FOR UPDATE`;
-  const m = await tx.membership.findUnique({
-    where: { userId_workspaceId: { workspaceId, userId } },
-  });
-  if (!m) throw new ServiceError(404, "NOT_FOUND", "Workspace not found");
-  if (m.role === "VIEWER" || (owner && m.role !== "OWNER"))
-    throw new ServiceError(
-      403,
-      "FORBIDDEN",
-      owner ? "Owner access required" : "Read-only workspace access",
-    );
-}
 export function knowledgeRoutes(
   app: Express,
   db: PrismaClient,
@@ -315,6 +299,14 @@ export function knowledgeRoutes(
           approvedAt: approved ? new Date() : null,
         },
       });
+      if (result.count && !approved)
+        await invalidateSourceApprovals(
+          tx,
+          workspaceId,
+          z.string().parse(req.params.id),
+          userId,
+          "Cited source withdrawn",
+        );
       if (result.count)
         await tx.auditEvent.create({
           data: {
@@ -337,6 +329,14 @@ export function knowledgeRoutes(
       const result = await tx.knowledgeDocument.deleteMany({
         where: { id: z.string().parse(req.params.id), workspaceId },
       });
+      if (result.count)
+        await invalidateSourceApprovals(
+          tx,
+          workspaceId,
+          z.string().parse(req.params.id),
+          userId,
+          "Cited source deleted",
+        );
       if (result.count)
         await tx.auditEvent.create({
           data: {
@@ -491,6 +491,16 @@ export function knowledgeRoutes(
           createdBy: userId,
           ...result,
           citations: result.citations as Prisma.InputJsonValue,
+        },
+      });
+      await tx.draftRevision.create({
+        data: {
+          draftId: draft.id,
+          workspaceId,
+          version: 1,
+          body: draft.body,
+          citations: draft.citations as Prisma.InputJsonValue,
+          changedBy: userId,
         },
       });
       await tx.auditEvent.create({
