@@ -17,14 +17,14 @@ Checked items below mean code or artifacts exist, not that an entire phase passe
 | Area | Repository state | Verification status |
 | --- | --- | --- |
 | Monorepo and configuration | React/Vite/TypeScript frontend, Express/TypeScript API, PostgreSQL Compose, environment examples, lockfile | Both builds passed in the preceding implementation turn |
-| Persistence | Prisma models and initial SQL migration | Client generation passed; both migrations applied to persistent local PostgreSQL and disposable test PostgreSQL |
-| Accounts and roles | Registration, multiple workspaces, invitations, owner administration; cookie sign-in/out; request-time authorization | All eight API/security/database tests pass with no skips |
+| Persistence | Prisma models and initial SQL migration | Client generation passed; all three migrations applied to persistent local PostgreSQL and disposable test PostgreSQL |
+| Accounts and roles | Registration, multiple workspaces, invitations, owner administration; cookie sign-in/out; request-time authorization | All 18 API/unit/database tests pass with no skips |
 | Tickets | Create, list, search, paginate, detail, assignment, status/priority updates, internal notes | Database integration and two-session Chromium workflow passed |
 | Audit | Transactional events for ticket creation, edits and notes; scoped event list | Database integration passed |
 | CI | Workflow provisions PostgreSQL, migrates, builds and runs tests | Configuration exists; no remote passing run verified |
-| Advanced features | No knowledge, AI, approvals, workers or webhooks yet | Not implemented |
+| Knowledge and drafts | Approved text ingestion/search, optional provider embeddings and cited drafts, abstention, source withdrawal and telemetry | 18 API/unit/database tests and two browser workflows pass; live provider quality unverified; review/delivery/workers pending |
 
-A bundled development PostgreSQL runtime now enables local development and disposable database testing without Docker. All eight API/security/database tests passed against PostgreSQL with no skips; both migrations applied. Latest dependency installation reported zero vulnerabilities. The two-session Chromium workflow passed; remote CI is unverified.
+A bundled development PostgreSQL runtime now enables local development and disposable database testing without Docker. All 18 API/unit/database tests passed against PostgreSQL with no skips; all three migrations applied. Latest dependency installation reported zero vulnerabilities. Both Chromium workflows passed; remote CI is unverified.
 
 ## Phase 1 — Foundation and configuration
 
@@ -60,21 +60,21 @@ Start after the Phase 1 exit gate. Keep provider secrets server-side; use synthe
 
 ### 2A. Knowledge ingestion and retrieval
 
-- [ ] Select an embedding/model provider and pgvector or another supported vector layer; document configuration and migration needs.
-- [ ] Model workspace-owned documents, versions, ingestion states, chunks and source metadata.
-- [ ] Authorize ingestion and enforce allowed file types, size limits and extraction errors.
-- [ ] Extract and chunk approved documents, create real embeddings and persist searchable passages.
-- [ ] Enforce tenant and document authorization before retrieval; exclude unapproved or removed content.
-- [ ] Test ingestion failures, stale/deleted sources and cross-tenant search attempts.
+- [x] Implement Groq structured draft generation with keyword retrieval by default, plus an explicitly selected OpenAI adapter for embeddings/hybrid retrieval. Document configuration, 2,000-passage limit and scalable vector-index migration needs.
+- [ ] Complete immutable document version history and persisted ingestion failure states. Workspace-owned immutable documents, chunks, approval metadata and source references are implemented; current documents start at version 1.
+- [x] Authorize UTF-8 text/Markdown ingestion; enforce file extensions, a 40 KB content limit, valid Unicode and bounded HTTP payloads. PDF extraction is outside the initial supported formats.
+- [ ] Verify real provider embeddings end to end after server-side credentials/model configuration. Text chunking, approved-document indexing and vector persistence are implemented and tested with provider doubles.
+- [x] Enforce tenant and document authorization before retrieval; exclude unapproved or removed content.
+- [x] Test invalid/oversized ingestion, stale/deleted sources, role restrictions and cross-tenant search attempts against PostgreSQL.
 
 ### 2B. Grounded drafts
 
-- [ ] Retrieve authorized passages for a ticket and call the configured model with retrieved text treated as untrusted evidence.
-- [ ] Save drafts with source/version/chunk references so citations open the actual supporting passage.
-- [ ] Abstain or request clarification when evidence is absent, contradictory or ambiguous.
-- [ ] Handle provider errors and timeouts without fabricating answers or successful outcomes.
-- [ ] Record model, token usage, measured latency, provider failures and cost when calculable; identify unavailable values explicitly.
-- [ ] Add draft/citation UI and tests for unsupported claims, prompt injection and workspace isolation.
+- [x] Implement authorized hybrid retrieval and a structured model request treating retrieved text as untrusted evidence. Provider contract tested with doubles; live-provider verification remains pending.
+- [x] Save drafts with source/version/chunk references; inspect quoted source passages from the ticket UI and hide stale-source drafts on subsequent reads.
+- [ ] Evaluate appropriate abstention/clarification on contradictory or ambiguous evidence with a real configured model. No-match abstention and structured model abstention handling are implemented.
+- [x] Handle provider HTTP errors, timeouts, invalid embeddings, incomplete drafts and unverifiable citations explicitly.
+- [x] Record model, token usage, measured provider latency and failures; report unknown monetary cost as null.
+- [ ] Complete live prompt-injection and claim-support evaluation. Draft/citation UI, exact-quote/source-ID checks, provider-contract tests and workspace-isolation tests are implemented; exact quotes alone do not prove semantic support.
 
 ### 2C. Human review and approved delivery
 
@@ -143,4 +143,7 @@ Freeze a synthetic test set, expected evidence and grading rubric before collect
 
 ## Immediate priority
 
-Begin Phase 2 knowledge ingestion and retrieval. The local Phase 1 exit gate passed with PostgreSQL integration tests and a two-session Chromium workflow. Expand browser coverage as listed above; remote CI and advanced phase exit gates remain pending.
+Continue Phase 2 with draft editing and human approval/rejection, followed by background jobs and delivery integrations. Configure a server-side AI key/model for live provider verification; the planned 50-case evaluation remains unrun. Knowledge ingestion/search and cited draft infrastructure are implemented and tested, but the full Phase 2 exit gate is unmet.
+
+## Provider decision — Groq
+User selected Groq. Use AI_PROVIDER=groq, GROQ_API_KEY and GROQ_MODEL (default openai/gpt-oss-20b on Groq). Groq draft generation uses approved lexical evidence and strict JSON schema output. Semantic indexing/search require a separate embedding provider and remain disabled in the Groq configuration. No OpenAI key is required or implicitly used. Contract tests cover the Groq endpoint, schema, token accounting, truncation, malformed output and failures; live calls remain unverified until a key is configured.

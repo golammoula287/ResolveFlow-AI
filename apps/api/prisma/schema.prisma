@@ -35,6 +35,9 @@ model Workspace {
   tickets Ticket[]
   events AuditEvent[]
   invitations Invitation[]
+  documents KnowledgeDocument[]
+  drafts Draft[]
+  aiRuns AiRun[]
 }
 model Membership {
   userId String
@@ -57,6 +60,7 @@ model Ticket {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   messages Message[]
+  drafts Draft[]
   @@unique([id, workspaceId])
   @@index([workspaceId, createdAt])
 }
@@ -93,4 +97,63 @@ model Invitation {
   revokedAt DateTime?
   createdAt DateTime @default(now())
   @@index([workspaceId, email])
+}
+
+model KnowledgeDocument {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title String
+  filename String
+  version Int @default(1)
+  contentHash String
+  approved Boolean @default(false)
+  createdBy String
+  approvedBy String?
+  approvedAt DateTime?
+  createdAt DateTime @default(now())
+  chunks KnowledgeChunk[]
+  @@unique([id, workspaceId])
+  @@index([workspaceId, createdAt])
+}
+model KnowledgeChunk {
+  id String @id @default(cuid())
+  documentId String
+  workspaceId String
+  document KnowledgeDocument @relation(fields: [documentId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  ordinal Int
+  content String
+  embedding Float[] @default([])
+  embeddingModel String?
+  @@unique([documentId, ordinal])
+  @@index([workspaceId, embeddingModel])
+}
+model Draft {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticketId String
+  ticket Ticket @relation(fields: [ticketId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  status String
+  body String
+  reason String?
+  citations Json
+  createdBy String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, ticketId, createdAt])
+}
+model AiRun {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  operation String
+  model String?
+  status String
+  latencyMs Int
+  inputTokens Int?
+  outputTokens Int?
+  costUsd Float?
+  errorCode String?
+  createdAt DateTime @default(now())
+  @@index([workspaceId, createdAt])
 }

@@ -44,3 +44,16 @@ The user requested scanning `/Users/golammoula/Downloads/ResolveFlow_AI_Advanced
 - Added invitation migration, embedded local PostgreSQL, npm run dev:local, npm run test:db and npm run test:e2e. Local environment files were created without replacing any existing files; secrets are ignored.
 - Both migrations applied to persistent local PostgreSQL and disposable test PostgreSQL. All eight API/security/database tests passed without skips. Builds passed. Two-session Chromium workflow passed (one browser test); all eight API/security/database tests passed.
 - Added Playwright workflow test and CI browser steps; remote CI remains unverified. Browser checks cover registration, tickets, notes, status changes, workspace separation, invitation acceptance, workspace persistence, viewer role enforcement and audit history. Next implementation priority is Phase 2 knowledge ingestion and retrieval.
+
+## Knowledge and draft build — 2026-10-26
+- Added workspace-owned immutable text/Markdown documents, 40 KB/UTF-8 validation, owner approval/withdrawal/deletion, overlapping chunks, PostgreSQL English full-text search and source inspection UI. No PDF extraction or version editing yet.
+- Added an optional OpenAI embedding/Responses adapter based on official documentation, strict output validation, timeout/error handling and rate limiting. Requires server-only OPENAI_API_KEY and AI_MODEL; no key was supplied or used.
+- Semantic retrieval uses exact cosine similarity over PostgreSQL float arrays, limited to 2,000 passages per workspace, combined with lexical ranking. Initial 0.35 threshold is uncalibrated; pgvector/scalable indexing remains future work.
+- Added cited draft history, source ID/exact-quote checks, abstention, stale-source hiding and measured provider telemetry. Cost is null; no provider quality claims are made.
+- Three migrations apply successfully to disposable PostgreSQL. All 15 API/unit/database tests and two Chromium workflows pass. Provider/draft tests use explicit test doubles; Chromium forces provider credentials off. Live provider calls and the frozen evaluation set remain unverified.
+- Next: human review/edit/approval/rejection, then background automation and approved delivery. No customer messages are sent.
+
+## Groq provider selection — 2026-10-26
+User chose Groq. Added a Groq Chat Completions adapter with strict structured output and default model openai/gpt-oss-20b, based on Groq official docs. AI_PROVIDER defaults to groq; server configuration uses GROQ_API_KEY/GROQ_MODEL. Local .env selects Groq without adding or displaying a key. Groq drafts use tenant-approved keyword evidence without calling an embedding provider. Semantic search/indexing are explicitly unavailable in this configuration. OpenAI remains an opt-in alternative only. Browser tests disable both provider keys; provider-contract and database tests use doubles. Live Groq calls are unverified because no key was supplied.
+
+Groq validation: production builds passed; all 18 API/unit/database tests passed without skips; both Chromium workflows passed. No live Groq request was made.

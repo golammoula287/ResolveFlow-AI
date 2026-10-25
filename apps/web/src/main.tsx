@@ -1,3 +1,5 @@
+import { Knowledge } from "./Knowledge";
+import { Drafts } from "./Drafts";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -323,6 +325,13 @@ function App() {
             <ShieldCheck size={19} />
             People & workspaces
           </button>
+          <button
+            className={tab === "knowledge" ? "active" : ""}
+            onClick={() => setTab("knowledge")}
+          >
+            <Layers size={19} />
+            Knowledge base
+          </button>
         </nav>
         <div className="sidebar-note">
           <ShieldCheck size={22} />
@@ -357,7 +366,9 @@ function App() {
               ? "Ticket inbox"
               : tab === "team"
                 ? "People & workspaces"
-                : "Activity log"}
+                : tab === "knowledge"
+                  ? "Knowledge base"
+                  : "Activity log"}
           </span>
           <span className="secure">
             <span /> Workspace connected
@@ -372,14 +383,18 @@ function App() {
                   ? "Your support, in flow."
                   : tab === "team"
                     ? "A place for your team."
-                    : "Every action, accounted for."}
+                    : tab === "knowledge"
+                      ? "Answers start with evidence."
+                      : "Every action, accounted for."}
               </h1>
               <p>
                 {tab === "inbox"
                   ? "Keep conversations moving, one resolution at a time."
                   : tab === "team"
                     ? "The right people, with the right access."
-                    : "A traceable history of your workspace’s support work."}
+                    : tab === "knowledge"
+                      ? "Give your team trusted sources for every conversation."
+                      : "A traceable history of your workspace’s support work."}
               </p>
             </div>
             {tab === "inbox" && writable && (
@@ -394,7 +409,17 @@ function App() {
               <button onClick={() => setError("")}>Dismiss</button>
             </div>
           )}
-          {tab === "team" ? (
+          {tab === "knowledge" ? (
+            <Knowledge
+              key={workspace}
+              workspace={workspace}
+              role={
+                me.memberships.find((m) => m.workspaceId === workspace)?.role ||
+                ""
+              }
+              api={api}
+            />
+          ) : tab === "team" ? (
             <Team
               key={
                 workspace +
@@ -715,6 +740,13 @@ function App() {
                 {error}
               </div>
             )}
+            <Drafts
+              key={workspace + selected.id}
+              base={base}
+              ticketId={selected.id}
+              writable={writable}
+              api={api}
+            />
             {writable && (
               <form
                 onSubmit={(e) =>

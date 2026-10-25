@@ -807,3 +807,114 @@ label small {
   font-size: 12px;
   text-decoration: underline;
 }
+.knowledge-banner {
+  border: 1px solid #dbe6ce;
+  background: #edf3e7;
+  border-radius: 9px;
+  padding: 20px;
+  margin-top: 28px;
+}
+.knowledge-banner strong {
+  font-size: 13px;
+}
+.knowledge-banner p,
+.hint {
+  font-size: 12px;
+}
+.knowledge-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.knowledge-search input {
+  flex: 2;
+}
+.knowledge-search select {
+  flex: 1;
+  font-size: 12px;
+}
+.knowledge-search .primary {
+  margin-top: 7px;
+}
+.knowledge .team-card .primary {
+  margin-top: 15px;
+}
+.passage {
+  border-top: 1px solid #e2e8da;
+  padding: 17px 0;
+}
+.passage button,
+.document-actions button,
+.drafts button {
+  font-size: 12px;
+  color: #416d43;
+  text-decoration: underline;
+}
+.passage p,
+.source-inline p {
+  white-space: pre-wrap;
+  font-size: 13px;
+  color: #53624a;
+}
+.passage button {
+  font-weight: 600;
+}
+.document-actions {
+  display: flex;
+  gap: 12px;
+}
+.drafts {
+  border-top: 1px solid #dfe6d7;
+  margin: 25px 0;
+  padding-top: 15px;
+}
+.drafts h3 {
+  font-size: 16px;
+}
+.draft-card {
+  background: #fff;
+  border: 1px solid #e0e6d8;
+  border-radius: 8px;
+  padding: 18px;
+  margin: 14px 0;
+}
+.draft-card p {
+  font-size: 13px;
+}
+.draft-body {
+  white-space: pre-wrap;
+  color: #344d37;
+}
+.draft-card details {
+  border-top: 1px solid #e7ebdf;
+  padding: 12px 0;
+  font-size: 12px;
+}
+.draft-card summary {
+  cursor: pointer;
+  color: #54744b;
+}
+.draft-card blockquote {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  margin: 14px 0;
+  padding-left: 13px;
+  border-left: 3px solid #bfd5ac;
+  color: #5c7054;
+}
+.source-inline {
+  padding: 18px;
+  background: #edf2e7;
+  border-radius: 8px;
+}
+@media (max-width: 750px) {
+  .knowledge-search {
+    flex-wrap: wrap;
+  }
+  .knowledge-search input {
+    flex-basis: 100%;
+  }
+  .document-actions {
+    flex-wrap: wrap;
+  }
+}

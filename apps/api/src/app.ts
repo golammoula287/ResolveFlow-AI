@@ -1,3 +1,5 @@
+import { knowledgeRoutes } from "./knowledge.js";
+import { ServiceError, type AiProvider } from "./ai.js";
 import { workspaceRoutes } from "./workspaces.js";
 import express, {
   type Request,
@@ -28,7 +30,12 @@ const createTicket = z.object({
 });
 export function createApp(
   db: PrismaClient,
-  config: { secret: string; origin: string; production?: boolean },
+  config: {
+    secret: string;
+    origin: string;
+    production?: boolean;
+    ai?: AiProvider;
+  },
 ) {
   const app = express();
   app.disable("x-powered-by");
@@ -155,6 +162,7 @@ export function createApp(
     }
     next();
   });
+  knowledgeRoutes(app, db, config.ai);
   const base = "/api/workspaces/:workspaceId";
   app.get(base + "/tickets", async (req, res) => {
     const query = z
@@ -312,6 +320,19 @@ export function createApp(
     res.status(404).json({ error: "Route not found" });
   });
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    if (err instanceof ServiceError) {
+      res.status(err.status).json({ error: err.message, code: err.code });
+      return;
+    }
+    if (
+      err &&
+      typeof err === "object" &&
+      "type" in err &&
+      err.type === "entity.too.large"
+    ) {
+      res.status(413).json({ error: "Request exceeds the 64 KB limit" });
+      return;
+    }
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: "Invalid input", details: err.issues });
       return;
@@ -330,7 +351,12 @@ export function createApp(
     console.error(
       JSON.stringify({
         level: "error",
-        message: err instanceof Error ? err.message : "Unknown error",
+        message: "Unhandled request error",
+        errorType: err instanceof Error ? err.name : "Unknown",
+        code:
+          err instanceof Prisma.PrismaClientKnownRequestError
+            ? err.code
+            : undefined,
       }),
     );
     res.status(500).json({ error: "Request failed" });
