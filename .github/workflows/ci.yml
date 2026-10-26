@@ -14,9 +14,21 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U resolveflow"
           --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7.2-alpine
+        ports: ['6380:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://resolveflow:test_password@localhost:5433/resolveflow_test
       TEST_DATABASE_URL: postgresql://resolveflow:test_password@localhost:5433/resolveflow_test
+      REDIS_URL: redis://localhost:6380
+      DELIVERY_MODE: local
+      LOCAL_OUTBOX_DIR: /tmp/resolveflow-ci-outbox
+      WEBHOOK_SIGNING_SECRET: ci-only-webhook-secret-with-at-least-32-characters
+      NODE_ENV: test
+      REDISMS_DISABLE_POSTINSTALL: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,3 +42,11 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
+      - run: npx tsx scripts/evaluate.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-evidence
+          path: |
+            evaluation/reports/
+            test-results/

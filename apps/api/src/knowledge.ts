@@ -1,6 +1,6 @@
 import { lockMember } from "./access.js";
 import { invalidateSourceApprovals } from "./reviews.js";
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, type Store } from "express-rate-limit";
 import { createHash } from "node:crypto";
 import type { Express } from "express";
 import { Prisma, type PrismaClient } from "@prisma/client";
@@ -49,10 +49,14 @@ export function knowledgeRoutes(
   app: Express,
   db: PrismaClient,
   provider?: AiProvider,
+  requestLimit = 30,
+  store?: Store,
+  pricing?: { input?: number; output?: number; embedding?: number },
 ) {
   const aiLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 30,
+    limit: requestLimit,
+    store,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     message: { error: "AI request limit reached. Try again later." },
@@ -86,6 +90,15 @@ export function knowledgeRoutes(
           latencyMs: Date.now() - started,
           inputTokens: result.usage.inputTokens,
           outputTokens: result.usage.outputTokens,
+          costUsd: operation.endsWith("embedding")
+            ? pricing?.embedding === undefined
+              ? null
+              : (result.usage.inputTokens * pricing.embedding) / 1000000
+            : pricing?.input === undefined || pricing?.output === undefined
+              ? null
+              : (result.usage.inputTokens * pricing.input +
+                  result.usage.outputTokens * pricing.output) /
+                1000000,
         },
       });
       return result;
@@ -113,7 +126,7 @@ export function knowledgeRoutes(
       .join(" OR ");
     const lexical = await db.$queryRaw<
       Passage[]
-    >`SELECT c.id,c."documentId",d.title,d.version,c.content,ts_rank_cd(to_tsvector('english',c.content),websearch_to_tsquery('english',${lexicalQuery}))::float8 AS score FROM "KnowledgeChunk" c JOIN "KnowledgeDocument" d ON d.id=c."documentId" AND d."workspaceId"=c."workspaceId" WHERE c."workspaceId"=${workspaceId} AND d.approved=true AND to_tsvector('english',c.content) @@ websearch_to_tsquery('english',${lexicalQuery}) ORDER BY score DESC,c.id LIMIT 6`;
+    >`SELECT c.id,c."documentId",d.title,d.version,c.content,(ts_rank_cd(to_tsvector('english',c.content),websearch_to_tsquery('english',${lexicalQuery}))+2*ts_rank_cd(to_tsvector('english',d.title),websearch_to_tsquery('english',${lexicalQuery})))::float8 AS score FROM "KnowledgeChunk" c JOIN "KnowledgeDocument" d ON d.id=c."documentId" AND d."workspaceId"=c."workspaceId" WHERE c."workspaceId"=${workspaceId} AND d.approved=true AND (to_tsvector('english',c.content) @@ websearch_to_tsquery('english',${lexicalQuery}) OR to_tsvector('english',d.title) @@ websearch_to_tsquery('english',${lexicalQuery})) ORDER BY score DESC,c.id LIMIT 6`;
     if (!semantic) return lexical;
     if (!provider)
       throw new ServiceError(
@@ -215,8 +228,15 @@ export function knowledgeRoutes(
     res.json({ items, total, page });
   });
   app.post(base + "/documents", async (req, res) => {
-    const input = documentInput.parse(req.body),
-      { workspaceId, userId } = res.locals;
+    const { workspaceId, userId } = res.locals;
+    const parsed = documentInput.safeParse(req.body);
+    if (!parsed.success) {
+      await db.ingestionFailure.create({
+        data: { workspaceId, actorId: userId, code: "INVALID_DOCUMENT" },
+      });
+      throw parsed.error;
+    }
+    const input = parsed.data;
     const document = await db.$transaction(async (tx) => {
       await lockMember(tx, workspaceId, userId);
       const document = await tx.knowledgeDocument.create({
@@ -246,6 +266,119 @@ export function knowledgeRoutes(
       return document;
     });
     res.status(201).json(document);
+  });
+  app.get(base + "/documents/failures", async (_req, res) =>
+    res.json(
+      await db.ingestionFailure.findMany({
+        where: { workspaceId: res.locals.workspaceId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+    ),
+  );
+  app.post(base + "/documents/:id/versions", async (req, res) => {
+    const { workspaceId, userId } = res.locals;
+    const parsed = documentInput.safeParse(req.body);
+    if (!parsed.success) {
+      await db.ingestionFailure.create({
+        data: {
+          workspaceId,
+          actorId: userId,
+          code: "INVALID_DOCUMENT_VERSION",
+        },
+      });
+      throw parsed.error;
+    }
+    const input = parsed.data;
+    const document = await db.$transaction(async (tx) => {
+      await lockMember(tx, workspaceId, userId, true);
+      const old = await tx.knowledgeDocument.findFirst({
+        where: { id: z.string().parse(req.params.id), workspaceId },
+      });
+      if (!old) throw new ServiceError(404, "NOT_FOUND", "Document not found");
+      const latest = await tx.knowledgeDocument.findFirst({
+        where: { workspaceId, seriesId: old.seriesId },
+        orderBy: { version: "desc" },
+      });
+      if (latest?.id !== old.id)
+        throw new ServiceError(
+          409,
+          "VERSION_CONFLICT",
+          "Replace the latest version of this document",
+        );
+      await tx.knowledgeDocument.updateMany({
+        where: { workspaceId, seriesId: old.seriesId },
+        data: { approved: false, approvedAt: null, approvedBy: null },
+      });
+      const previous = await tx.knowledgeDocument.findMany({
+        where: { workspaceId, seriesId: old.seriesId },
+        select: { id: true },
+      });
+      for (const d of previous)
+        await invalidateSourceApprovals(
+          tx,
+          workspaceId,
+          d.id,
+          userId,
+          "New source version uploaded",
+        );
+      const document = await tx.knowledgeDocument.create({
+        data: {
+          workspaceId,
+          title: input.title,
+          filename: input.filename,
+          version: old.version + 1,
+          seriesId: old.seriesId,
+          supersedesId: old.id,
+          createdBy: userId,
+          contentHash: createHash("sha256").update(input.content).digest("hex"),
+          chunks: {
+            create: chunkText(input.content).map((content, ordinal) => ({
+              content,
+              ordinal,
+            })),
+          },
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          workspaceId,
+          actorId: userId,
+          action: "document.version_created",
+          resourceId: document.id,
+        },
+      });
+      return {
+        id: document.id,
+        title: document.title,
+        version: document.version,
+        approved: document.approved,
+      };
+    });
+    res.status(201).json(document);
+  });
+  app.get(base + "/documents/:id/versions", async (req, res) => {
+    const workspaceId = res.locals.workspaceId;
+    const doc = await db.knowledgeDocument.findFirst({
+      where: { workspaceId, id: z.string().parse(req.params.id) },
+    });
+    if (!doc) {
+      res.status(404).json({ error: "Document not found" });
+      return;
+    }
+    res.json(
+      await db.knowledgeDocument.findMany({
+        where: { workspaceId, seriesId: doc.seriesId },
+        select: {
+          id: true,
+          title: true,
+          version: true,
+          approved: true,
+          createdAt: true,
+        },
+        orderBy: { version: "desc" },
+      }),
+    );
   });
   app.get(base + "/documents/search", async (req, res) => {
     const { q, mode } = z
@@ -291,6 +424,23 @@ export function knowledgeRoutes(
       { workspaceId, userId } = res.locals;
     const result = await db.$transaction(async (tx) => {
       await lockMember(tx, workspaceId, userId, true);
+      if (approved) {
+        const doc = await tx.knowledgeDocument.findFirst({
+          where: { id: z.string().parse(req.params.id), workspaceId },
+        });
+        if (doc) {
+          const latest = await tx.knowledgeDocument.findFirst({
+            where: { workspaceId, seriesId: doc.seriesId },
+            orderBy: { version: "desc" },
+          });
+          if (latest?.id !== doc.id)
+            throw new ServiceError(
+              409,
+              "SUPERSEDED_SOURCE",
+              "Only the latest source version can be approved",
+            );
+        }
+      }
       const result = await tx.knowledgeDocument.updateMany({
         where: { id: z.string().parse(req.params.id), workspaceId },
         data: {
@@ -424,6 +574,91 @@ export function knowledgeRoutes(
       }),
     ),
   );
+  app.post(base + "/tickets/:id/manual-drafts", async (req, res) => {
+    const input = z
+      .object({
+        body: z.string().trim().min(1).max(12000),
+        citations: z
+          .array(
+            z
+              .object({
+                chunkId: z.string(),
+                quote: z.string().min(1).max(2400),
+              })
+              .strict(),
+          )
+          .min(1)
+          .max(6),
+      })
+      .strict()
+      .parse(req.body);
+    const { workspaceId, userId } = res.locals;
+    const draft = await db.$transaction(async (tx) => {
+      await lockMember(tx, workspaceId, userId);
+      const ticket = await tx.ticket.findFirst({
+        where: { id: z.string().parse(req.params.id), workspaceId },
+      });
+      if (!ticket) throw new ServiceError(404, "NOT_FOUND", "Ticket not found");
+      const chunks = await tx.knowledgeChunk.findMany({
+        where: {
+          workspaceId,
+          id: { in: input.citations.map((c) => c.chunkId) },
+          document: { approved: true },
+        },
+        include: { document: true },
+      });
+      const citations = input.citations.map((c) => {
+        const p = chunks.find(
+          (p) => p.id === c.chunkId && p.content.includes(c.quote),
+        );
+        if (!p)
+          throw new ServiceError(
+            400,
+            "UNSUPPORTED_CITATION",
+            "Choose an exact quote from an approved passage",
+          );
+        return {
+          chunkId: p.id,
+          documentId: p.documentId,
+          title: p.document.title,
+          version: p.document.version,
+          quote: c.quote,
+          claim: input.body,
+        };
+      });
+      const draft = await tx.draft.create({
+        data: {
+          workspaceId,
+          ticketId: ticket.id,
+          status: "DRAFT",
+          origin: "HUMAN",
+          body: input.body,
+          citations,
+          createdBy: userId,
+        },
+      });
+      await tx.draftRevision.create({
+        data: {
+          workspaceId,
+          draftId: draft.id,
+          version: 1,
+          body: draft.body,
+          citations,
+          changedBy: userId,
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          workspaceId,
+          actorId: userId,
+          action: "draft.manually_created",
+          resourceId: draft.id,
+        },
+      });
+      return draft;
+    });
+    res.status(201).json(draft);
+  });
   app.post(base + "/tickets/:id/drafts", async (req, res) => {
     const { workspaceId, userId } = res.locals;
     const ticket = await db.ticket.findFirst({

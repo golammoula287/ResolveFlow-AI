@@ -18,5 +18,10 @@ npm run build
 npm test
 npm run test:db
 npm run test:e2e
+npm run release:check
+npm run eval:retrieval
 
 `npm run test:db` and `npm run test:e2e` create and remove their own disposable PostgreSQL cluster. Direct integration test runs need TEST_DATABASE_URL pointed at a dedicated disposable PostgreSQL database. `npm run dev:local` starts persistent local PostgreSQL and both apps; do not run it concurrently with browser tests on ports 4000/5173. Never run them against customer data. Keep PLAN.md and CONTEXT.md current with verified outcomes and remaining work. Do not claim a passing check unless it actually ran.
+
+## Release constraints
+Groq is the selected default. Vercel hosts the frontend/API; use bounded cron/manual queue processing rather than a permanent worker inside a function. Local delivery capture is an actual file artifact and must never be labelled externally delivered. Resend acceptance is not delivery; only verified signed status events update it. Never retry uncertain external sends past the configured idempotency window. Keep live provider/hosted deployment gates unverified until credentials and evidence exist.

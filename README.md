@@ -1,12 +1,12 @@
 # ResolveFlow AI
 
-Multi-tenant support workspace built from `ResolveFlow_AI_Advanced_Project_Blueprint.pdf`.
+Multi-tenant customer support and workflow automation built with React, TypeScript, Express, PostgreSQL/Prisma, Groq, Redis and BullMQ. Vercel deployment configuration is included.
 
-The current implementation provides registration, secure cookie sign-in, workspace authorization, a real ticket inbox, assignment, status/priority changes, internal notes and transactional audit history. Owners can invite teammates, change roles and remove members; existing users can create and join additional workspaces. React + TypeScript + Vite frontend; Express + TypeScript API; PostgreSQL + Prisma persistence.
+Implemented: accounts/workspaces, invitations and roles; ticket threads, assignment, filtering/pagination; versioned approved knowledge; cited AI or explicitly human-written drafts; immutable revisions and human approvals; durable approved-delivery jobs; retry/backoff/idempotency; priority escalation; signed ticket and email-status webhooks; tenant-scoped audit and operational metrics.
 
 ## Run locally
 
-Requires Node.js 22.12+ (Node 24 recommended) and npm. A bundled development PostgreSQL runtime is available; Docker is optional.
+Use Node 24, npm and a compiler/make toolchain for the bundled real Redis runtime. Docker is optional. First install/start may download and compile Redis 7.2.7.
 
 ```sh
 npm install
@@ -14,106 +14,77 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
-Replace `JWT_SECRET` in `apps/api/.env` with a randomly generated secret of at least 32 characters. Keep the API origin, browser API URL and frontend port consistent. The example database password is for local development only.
-
-For a persistent local database and both app servers:
+Set a random JWT_SECRET of at least 32 characters. Configure REDIS_URL=redis://127.0.0.1:6380. Choose DELIVERY_MODE=local for actual local file capture (no email), or disabled to turn delivery off. Add separate random WEBHOOK_SIGNING_SECRET and CRON_SECRET values if using those integrations.
 
 ```sh
 npm run dev:local
 ```
 
-Local data is stored in ignored `.local/postgres`. Stop with Ctrl+C. Use `localhost` in the browser to match the configured write origin. If you prefer Docker or an existing PostgreSQL server:
+Open http://localhost:5173. This starts persistent PostgreSQL, persistent Redis, API, frontend and worker. Data and local capture files stay under ignored `.local/`. For Docker databases, `docker compose up -d`, generate/migrate Prisma, then `npm run dev` instead.
+
+Optional synthetic demo:
 
 ```sh
-docker compose up -d
-npm run db:generate
-npm run db:migrate
-npm run dev
+npm run demo:seed -- --confirm
 ```
 
-Open http://localhost:5173 and create a workspace. API: http://localhost:4000. The initial inbox is empty; use **New ticket** to add actual persisted records. Create a second account in a separate browser profile to exercise workspace separation. No demo metrics or simulated AI are displayed.
+See [demo accounts and walkthrough](docs/DEMO.md). Seeding never resets existing records.
 
-## Verification
+## Groq
 
-```sh
-npm run build
-npm test
-npm run test:db
-npx playwright install chromium
-npm run test:e2e
-```
-
-The API security tests cover unauthenticated access, mutation origins, role policy, membership rechecks and tenant-scoped reads. The database integration test is skipped unless `TEST_DATABASE_URL` is set. Point it at a dedicated migrated disposable PostgreSQL database:
-
-```sh
-TEST_DATABASE_URL=postgresql://resolveflow:local_password@localhost:5433/resolveflow npm test
-```
-
-`npm run test:db` creates a disposable PostgreSQL database, applies migrations, runs the full API suite and removes the database. `npm run test:e2e` does the same for browser tests, with app servers on ports 4000 and 5173; stop your development servers first.
-
-The integration test creates random fixture accounts and removes its own records. It checks two-tenant reads, search, mutations, notes, audit isolation, cross-tenant assignments, live role changes, invitation binding/expiry/revocation/single-use acceptance, final-owner protection, member removal and logout. CI provisions a separate PostgreSQL service, applies migrations, builds and runs both suites.
-
-Verified locally: both production builds pass, all four migrations apply to PostgreSQL, and all 19 API/unit/database tests pass with no skips. The latest dependency installation reported zero vulnerabilities. All three Chromium workflows also pass. Remote CI and deployment remain unverified.
-
-## Architecture and security
-
-```mermaid
-flowchart LR
-  Browser[React browser] -->|HttpOnly session cookie| API[Express API]
-  API --> Session[JWT verification]
-  Session --> Membership[Current database membership and role]
-  Membership --> Query[Tenant-scoped Prisma operation]
-  Query --> DB[(PostgreSQL)]
-  Query --> Audit[Transactional audit event]
-  Audit --> DB
-```
-
-Membership and roles come from the database on every workspace request. Ticket and message queries carry the current workspace ID. Message foreign keys include the workspace ID. Password hashes remain server-side; JWT cookies expire after eight hours. Writes require an exact matching Origin. Production cookie security requires `NODE_ENV=production` and HTTPS. Login and registration have an in-memory rate limiter, which must be replaced with a shared store for multiple API instances. Logging out clears the browser cookie; stolen tokens remain valid until expiration. Individual session revocation is a remaining hardening task.
-
-Internal notes never send customer email. Knowledge ingestion, approval, search, provider integration and cited internal drafts are implemented as described below. Human draft editing and review approvals are implemented. Customer delivery and background workers are not implemented yet. Invitations are created as tokens, displayed once to the owner for private sharing; this app does not send invitation emails. Tokens expire in seven days, are stored as SHA-256 hashes and can be revoked. Acceptance requires the invited account email. Account email verification and password recovery are not implemented. Workspace membership changes serialize on the workspace row to preserve the final owner. See [PLAN.md](PLAN.md) for the complete blueprint backlog and [CONTEXT.md](CONTEXT.md) for handoff context. This is not yet a production-ready advanced SaaS.
-
-## References
-
-Implementation guidance: [Express security practices](https://expressjs.com/advanced/best-practice-security/) and [Prisma 6 relations](https://docs.prisma.io/docs/orm/v6/prisma-schema/data-model/relations).
-
-## Knowledge and grounded drafts
-
-A synthetic policy is available at `docs/samples/refund-policy.md` for manual testing. Open **Knowledge base** to upload a UTF-8 `.txt`/`.md` document (up to 40,000 bytes) or paste plain text. Agents and owners can ingest documents; only owners can approve, withdraw or delete them. Unapproved content is excluded from retrieval. Documents are immutable; replacing one currently means withdrawing it and adding a new document. Version history and PDF extraction are not implemented.
-
-Approved passages support PostgreSQL English full-text search immediately, without an AI key. Click a result to inspect its source. **Index for AI** generates real embeddings when a provider is configured. Vectors are stored as PostgreSQL float arrays and searched with exact cosine similarity in the API, combined with keyword results using reciprocal rank fusion. This implementation limits semantic search to 2,000 indexed passages per workspace; it is not an approximate vector index. The initial similarity threshold of 0.35 is not calibrated by the pending evaluation set. Larger collections require a scalable vector index such as pgvector and measured retrieval tuning.
-
-For Groq draft generation, configure the server's `apps/api/.env`:
+Set server-only values in apps/api/.env:
 
 ```dotenv
 AI_PROVIDER=groq
-GROQ_API_KEY=<your server-side Groq key>
+GROQ_API_KEY=<your-key>
 GROQ_MODEL=openai/gpt-oss-20b
 ```
 
-Restart the API after configuration. Groq is the default provider. The configured model is hosted by Groq and uses its Chat Completions endpoint with strict JSON schema output; no OpenAI key is required. Choose a Groq model that supports strict structured outputs. See [Groq structured outputs and supported models](https://console.groq.com/docs/structured-outputs).
+Restart the API. No OpenAI key is required. Groq drafts use approved PostgreSQL English keyword evidence and strict structured output. Source IDs and exact quotes are validated, but citation presence does not prove that a claim follows from the evidence. Human review remains required. Missing evidence abstains; missing provider configuration returns an explicit error. No AI answer or metric is fabricated.
 
-This Groq configuration uses PostgreSQL keyword retrieval over approved sources. Semantic search and **Index for AI** stay disabled because no embedding provider is configured. Existing stored embeddings are not sent to Groq or used for Groq draft retrieval. A separate embedding integration can be added later.
+The optional OpenAI adapter is selected explicitly with AI_PROVIDER=openai, OPENAI_API_KEY and AI_MODEL. Its embeddings enable bounded exact cosine search over PostgreSQL arrays (2,000 passages/workspace, uncalibrated initial threshold 0.35). Groq mode disables semantic indexing/search until a separate embedding integration is configured.
 
-The optional OpenAI adapter remains available only when explicitly selected with `AI_PROVIDER=openai`, `OPENAI_API_KEY`, `AI_MODEL` and optionally `EMBEDDING_MODEL=text-embedding-3-small`. In that mode **Index for AI** generates embeddings for approved sources and drafts can use hybrid retrieval.
+Text/Markdown uploads are limited to 40 KB and validated as text. Owners approve, withdraw and replace sources with immutable versions. Older versions cannot be reapproved while superseded. Invalid ingestion attempts are recorded without raw document content. PDF extraction is outside the supported input formats.
 
-Keys remain server-side. Draft requests send the initial ticket question and authorized evidence to the selected provider. Requests time out after 30 seconds, fail explicitly, and have an in-memory limit of 30 AI operations per IP per 15 minutes. Configure a shared limiter before multi-instance deployment. No embeddings or generated responses are simulated when credentials are missing.
+## Review and delivery
 
-Open a ticket and choose **Generate draft**. The app retrieves approved evidence, validates returned source IDs and exact quotations, and saves an internal draft with source links. Missing evidence creates an abstention without a provider call; matching evidence with no provider configuration returns a configuration error. Claims may still misinterpret a valid quote: quotation validation is not proof of factual support. Human review is required. Review approvals are implemented; customer delivery is not yet implemented. Draft bodies and citations are hidden on subsequent reads if a cited document has been withdrawn or deleted.
+Owners/agents can edit and review drafts; viewers read only. Changed edits create immutable revisions, return to pending review and clear approval. Decisions require an expected version; approval requires a source-check confirmation, rejection a reason. Withdrawing a source invalidates current approvals. Edited responses retain original evidence references, which the reviewer must recheck.
 
-The knowledge screen shows recorded provider model, latency, token usage and failures. Monetary cost remains unknown (`null`), rather than an invented estimate. AI operations are synchronous in this release; job recovery and persisted ingestion failure states are pending.
+Delivery requires a separate explicit confirmation on an approved version. The PostgreSQL outbox survives queue interruptions; BullMQ uses stable IDs, bounded retries and exponential backoff. The worker rechecks membership, current approval, exact version/body, recipient and sources immediately before delivery.
 
-Verification: 19 API/unit/database tests and three Chromium workflows pass. Groq/OpenAI contract tests and database draft tests use explicit test doubles; browser tests force both providers’ credentials off. No paid provider calls or model-quality evaluation were performed. Full live AI quality remains unverified until configured and evaluated against the planned frozen dataset.
+- local: writes a real idempotent JSON capture file; status LOCAL_CAPTURED never means email delivery.
+- resend: uses the configured sender/key and a stable provider idempotency key; ACCEPTED is not DELIVERED. Signed Resend events set delivery/bounce outcomes.
+- disabled: rejects delivery requests.
 
-API implementation references: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses), [OpenAI embeddings](https://developers.openai.com/api/reference/resources/embeddings/methods/create).
+Uncertain sends are not retried after 23 hours from first attempt because Resend retains idempotency keys for 24 hours. See [operations and recovery](docs/OPERATIONS.md). Workflow history, provider usage, review counts, ingestion failures and worker heartbeat are measured from stored events. Monetary cost is null unless explicit model price snapshots are configured with AI_INPUT_USD_PER_MILLION, AI_OUTPUT_USD_PER_MILLION and optionally EMBEDDING_USD_PER_MILLION. Historical unknown costs remain unknown.
 
-## Draft review
+## Vercel
 
-The **Review queue** lists pending, approved, rejected and abstained drafts within the current workspace, with pagination and refresh. Owners and agents can edit and review; viewers can read. The same controls are available inside ticket detail. Approving a response does not send or queue a customer reply.
+Follow [the Vercel setup guide](docs/VERCEL.md) and [environment template](deployment/vercel.env.example). The frontend uses same-origin `/api`; the Express function never starts a listening server. Hosted PostgreSQL and a TCP/TLS Redis service are required. Local capture is rejected on Vercel.
 
-Every changed edit creates an immutable revision and resets the draft to pending review. Approval requires explicit confirmation that the response was checked against its sources. Decisions record reviewer identity, time, version and a SHA-256 hash of the exact response. Rejection requires a reason. Saved revisions and previous decisions remain available through **View review history**. The initial migration backfills revision 1 for existing drafts.
+Job processing uses authenticated bounded cron/manual invocations. The default daily cron is compatible with Hobby scheduling; timely support delivery needs the documented frequent scheduler or a separately hosted worker. Redis shares auth/AI rate limits across configured API instances. Runtime JSON logs include request IDs and safe metadata, without credentials or bodies.
 
-Requests must include the version being edited/reviewed; stale versions and duplicate or competing decisions are rejected. Workspace locking serializes edits, decisions and document withdrawal. Withdrawing or deleting a cited source clears current approval and records an invalidation event. Reapproving a source does not restore the draft's old approval. Abstentions cannot be edited into approved responses.
+## Verification and evidence
 
-Edited responses retain the original evidence references, which may no longer support the changed wording. The reviewer must check the complete edited response; no automatic semantic validation of human edits is claimed. Review revisions are immutable through the API, but a database administrator can still alter stored data. Review history is an application audit trail, not tamper-proof storage.
+```sh
+npm run release:check
+npm run demo:capture
+```
 
-The review database test covers tenant isolation, VIEWER denial, stale versions, concurrent review decisions, required reasons/confirmation, revision preservation, exact response hashes and source invalidation. The browser review test uses a clearly hand-authored synthetic database fixture; it does not simulate a paid model call in the app.
+The release check generates Prisma, builds both apps, runs unit/API/PostgreSQL/Redis tests, runs Chromium workflows and produces the frozen retrieval evaluation report. Disposable services are removed afterward. Browser tests disable provider keys; no external email or paid AI call occurs. CI defines the same checks with PostgreSQL/Redis services, but a remote CI run is not claimed until observed.
+
+The frozen [50-case dataset](evaluation/dataset.json) and [rubric](evaluation/RUBRIC.md) separate retrieval/authorization from answer quality. The retrieval-only run recorded 20/20 expected-source hits, 5/5 direct cross-tenant denials, zero foreign passage leaks. These are synthetic retrieval results, not model accuracy. Live Groq evaluation and manual grading remain required.
+
+[Walkthrough and screenshots](docs/artifacts/) show synthetic workspaces, an explicitly human-written response and real local capture. The approximately 90-second video does not claim live AI generation or external delivery. [Architecture](docs/ARCHITECTURE.md), [portfolio evidence notes](docs/PORTFOLIO.md), [plan](PLAN.md) and [handoff context](CONTEXT.md) describe the implementation and outstanding external gates.
+
+## Remaining external gates and limitations
+
+Live Groq answers/evaluation, real Resend delivery/domain setup, hosted database/Redis provisioning, Vercel deployment and independent live-demo review need the user's accounts, credentials and validation. They were not replaced with simulated success. Account email verification/password recovery and individual stolen-token revocation are not implemented; browser logout clears the cookie, while a copied JWT remains valid until its eight-hour expiry. Review history is application-audited, not tamper-proof against database administrators. Backups, log retention and production resource limits must be configured on the selected services before real customer use.
+
+References: [Groq structured outputs](https://console.groq.com/docs/structured-outputs), [BullMQ connections](https://docs.bullmq.io/guide/connections), [Resend idempotency](https://resend.com/docs/dashboard/emails/idempotency-keys), [Vercel cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing).
+
+## Public homepage
+
+Visitors enter through the public product homepage at `/`. Its feature/workflow sections and FAQ link to `/signup` and `/signin`; the authenticated workspace is at `/app`. Signed-in visitors can reopen their workspace from the homepage. The responsive product preview is explicitly illustrative and contains no fabricated customer or performance claims. Desktop/mobile screenshots are in docs/artifacts/home-desktop.png and home-mobile.png. The latest frontend build and all seven browser workflows pass.
+
+For development against a configured hosted database such as Neon, use `npm run dev:connected`. It uses DATABASE_URL from apps/api/.env, applies the existing migrations, and manages Redis locally only when its URL is localhost. `dev:local` retains its localhost-database guard. Hosted services and accounts are never reset by these launchers.

@@ -991,3 +991,28 @@ label small {
   padding: 20px;
   color: #819177;
 }
+.manual-source {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  padding: 12px;
+  background: #f0f4e9;
+  border-radius: 6px;
+}
+.manual-source input {
+  width: 16px;
+  flex-shrink: 0;
+  margin: 2px 0;
+}
+.manual-source small {
+  white-space: pre-wrap;
+  margin-top: 9px;
+  color: #627258;
+  line-height: 1.6;
+}
+.manual-draft .primary {
+  margin-top: 20px;
+}
+.workflows {
+  margin-top: 26px;
+}

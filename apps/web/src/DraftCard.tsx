@@ -16,6 +16,7 @@ export type Draft = {
   id: string;
   ticketId: string;
   status: string;
+  origin?: string;
   body: string;
   reason: string | null;
   citations: Citation[];
@@ -49,7 +50,8 @@ export function DraftCard({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [source, setSource] = useState<any>(null),
-    [history, setHistory] = useState<any>(null);
+    [history, setHistory] = useState<any>(null),
+    [deliveryStatus, setDeliveryStatus] = useState<string | null>(null);
   const path = base + "/drafts/" + d.id;
   useEffect(() => {
     setBody(d.body);
@@ -83,7 +85,8 @@ export function DraftCard({
             : d.status === "DRAFT"
               ? "PENDING REVIEW"
               : d.status}{" "}
-          · VERSION {d.version}
+          · VERSION {d.version} ·{" "}
+          {d.origin === "HUMAN" ? "HUMAN-WRITTEN" : "AI-GENERATED"}
         </span>
         <small>{new Date(d.createdAt).toLocaleString()}</small>
       </div>
@@ -96,8 +99,40 @@ export function DraftCard({
         <p className="approval-note">
           Approved version {d.approvedVersion} ·{" "}
           {d.reviewedAt ? new Date(d.reviewedAt).toLocaleString() : ""}.
-          Delivery has not been queued.
+          Delivery requires a separate confirmation.
         </p>
+      )}
+      {d.status === "APPROVED" && writable && (
+        <div className="review-actions">
+          <button
+            className="primary"
+            disabled={busy || d.sourcesAvailable === false}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Queue this approved version for the configured delivery channel? Local mode captures a file; Resend mode emails the ticket customer.",
+                )
+              )
+                return;
+              run(async () => {
+                const result = await api(path + "/delivery", "POST", {
+                  expectedVersion: d.version,
+                  confirmSend: true,
+                });
+                setDeliveryStatus(
+                  (result.duplicate ? "Already queued" : "Queued") +
+                    " · " +
+                    (result.mode === "local"
+                      ? "local capture, no email sent"
+                      : result.mode),
+                );
+              });
+            }}
+          >
+            Queue approved delivery
+          </button>
+          {deliveryStatus && <small role="status">{deliveryStatus}</small>}
+        </div>
       )}
       {error && (
         <div className="error" role="alert">

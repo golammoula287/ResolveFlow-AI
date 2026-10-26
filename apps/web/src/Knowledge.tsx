@@ -25,6 +25,8 @@ export function Knowledge({
   role: string;
   api: Api;
 }) {
+  const [replacing, setReplacing] = useState<string | null>(null);
+  const [versions, setVersions] = useState<any[] | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]),
     [page, setPage] = useState(1),
     [total, setTotal] = useState(0),
@@ -95,7 +97,13 @@ export function Knowledge({
     const form = e.currentTarget;
     const title = new FormData(form).get("title");
     run(async () => {
-      await api(base + "/documents", "POST", { title, filename, content });
+      await api(
+        base +
+          (replacing ? "/documents/" + replacing + "/versions" : "/documents"),
+        "POST",
+        { title, filename, content },
+      );
+      setReplacing(null);
       setContent("");
       setFilename("knowledge.txt");
       form.reset();
@@ -129,7 +137,12 @@ export function Knowledge({
       )}
       {writable && (
         <form className="team-card" onSubmit={ingest}>
-          <h3>Add knowledge</h3>
+          <h3>{replacing ? "Upload a new version" : "Add knowledge"}</h3>
+          {replacing && (
+            <button type="button" onClick={() => setReplacing(null)}>
+              Cancel replacement
+            </button>
+          )}
           <p className="hint">
             Upload UTF-8 .txt or .md files up to 40 KB, or paste plain text. An
             owner must approve each document before it can be retrieved.
@@ -175,7 +188,7 @@ export function Knowledge({
           </label>
           <small>Source: {filename}</small>
           <button className="primary" disabled={busy}>
-            Add document
+            {replacing ? "Save new version" : "Add document"}
           </button>
         </form>
       )}
@@ -337,6 +350,22 @@ export function Knowledge({
           </div>
         </footer>
       </div>
+      {versions && (
+        <section className="team-card">
+          <div className="team-heading">
+            <h3>Document versions</h3>
+            <button onClick={() => setVersions(null)}>Close versions</button>
+          </div>
+          {versions.map((v) => (
+            <p key={v.id}>
+              <button onClick={() => open(v.id)}>
+                {v.title} · version {v.version}
+              </button>{" "}
+              · {v.approved ? "Approved" : "Not approved"}
+            </p>
+          ))}
+        </section>
+      )}
       <h3>AI activity</h3>
       <p className="hint">
         Measured provider requests and token usage. Cost is not estimated. No

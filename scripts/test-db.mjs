@@ -1,3 +1,4 @@
+import { RedisMemoryServer } from "redis-memory-server";
 import EmbeddedPostgres from "embedded-postgres";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -17,8 +18,19 @@ const pg = new EmbeddedPostgres({
   onLog: () => {},
   onError: (message) => console.error(message),
 });
+const redis = new RedisMemoryServer({
+  binary: { version: "7.2.7" },
+  instance: { ip: "127.0.0.1" },
+});
+const redisPort = await redis.getPort();
 const env = {
   ...process.env,
+  NODE_ENV: "test",
+  CAPTURE_DEMO: process.argv.includes("--capture") ? "1" : "0",
+  REDIS_URL: `redis://127.0.0.1:${redisPort}`,
+  DELIVERY_MODE: "local",
+  LOCAL_OUTBOX_DIR: join(directory, "outbox"),
+  WEBHOOK_SIGNING_SECRET: randomBytes(32).toString("hex"),
   DATABASE_URL: `postgresql://resolveflow:${password}@127.0.0.1:${port}/resolveflow_test`,
   TEST_DATABASE_URL: `postgresql://resolveflow:${password}@127.0.0.1:${port}/resolveflow_test`,
 };
@@ -39,11 +51,16 @@ try {
   await pg.createDatabase("resolveflow_test");
   await run(["run", "db:migrate"]);
   await run(
-    process.argv.includes("--browser")
-      ? ["exec", "playwright", "test"]
-      : ["test"],
+    process.argv.includes("--capture")
+      ? ["exec", "playwright", "test", "tests/delivery.spec.ts"]
+      : process.argv.includes("--eval")
+        ? ["exec", "tsx", "scripts/evaluate.ts"]
+        : process.argv.includes("--browser")
+          ? ["exec", "playwright", "test"]
+          : ["test"],
   );
 } finally {
   await pg.stop().catch(() => {});
+  await redis.stop();
   await rm(directory, { recursive: true, force: true });
 }

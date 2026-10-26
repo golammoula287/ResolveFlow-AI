@@ -1,3 +1,4 @@
+import { ManualDraft } from "./ManualDraft";
 import { useEffect, useState } from "react";
 import { DraftCard, type Draft, type Api } from "./DraftCard";
 export function Drafts({
@@ -11,6 +12,7 @@ export function Drafts({
   writable: boolean;
   api: Api;
 }) {
+  const [manual, setManual] = useState(false);
   const [drafts, setDrafts] = useState<Draft[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -61,6 +63,22 @@ export function Drafts({
         <div role="alert" className="error">
           {error}
         </div>
+      )}
+      {writable && (
+        <button className="text" onClick={() => setManual(!manual)}>
+          {manual ? "Cancel manual response" : "Write manual response"}
+        </button>
+      )}
+      {manual && (
+        <ManualDraft
+          base={base}
+          ticketId={ticketId}
+          api={api}
+          done={async () => {
+            await refresh();
+            setManual(false);
+          }}
+        />
       )}
       {!drafts.length && <p className="hint">No drafts yet.</p>}
       {drafts.map((d) => (

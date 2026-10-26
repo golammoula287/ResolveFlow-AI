@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 async function register(page: Page, email: string, workspace: string) {
-  await page.goto("/");
+  await page.goto("/signin");
   await page
     .getByRole("button", { name: "New here? Create a workspace" })
     .click();

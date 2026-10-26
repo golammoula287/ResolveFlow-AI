@@ -57,7 +57,7 @@ export async function invalidateSourceApprovals(
     });
   }
 }
-async function evidenceAvailable(
+export async function evidenceAvailable(
   tx: Prisma.TransactionClient,
   workspaceId: string,
   citations: unknown,

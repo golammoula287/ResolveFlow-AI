@@ -5,23 +5,39 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -n api,web 'npm run dev -w apps/api' 'npm run dev -w apps/web'",
+    "dev": "concurrently -n api,web,worker \"npm run dev -w apps/api\" \"npm run dev -w apps/web\" \"npm run worker -w apps/api\"",
     "build": "npm run build --workspaces",
     "test": "npm run test -w apps/api",
     "db:generate": "npm run db:generate -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
     "test:db": "node scripts/test-db.mjs",
     "test:e2e": "node scripts/test-db.mjs --browser",
-    "dev:local": "node scripts/dev-local.mjs"
+    "dev:local": "node scripts/dev-local.mjs",
+    "eval:retrieval": "node scripts/test-db.mjs --eval",
+    "eval:live": "tsx scripts/evaluate.ts --live",
+    "demo:capture": "node scripts/test-db.mjs --capture",
+    "demo:seed": "tsx scripts/seed-demo.ts",
+    "release:check": "npm run db:generate && npm run build && npm run test:db && npm run test:e2e && npm run eval:retrieval",
+    "dev:connected": "node scripts/dev-local.mjs --connected",
+    "demo:workspace": "tsx scripts/seed-workspace.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "concurrently": "^9.2.0",
     "embedded-postgres": "^18.4.0-beta.17",
-    "prettier": "^3.9.10"
+    "prettier": "^3.9.10",
+    "redis-memory-server": "^0.17.1"
   },
   "overrides": {
     "effect": "^3.20.0",
     "deepmerge-ts": "^8.0.0"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "type": "module",
+  "redisMemoryServer": {
+    "version": "7.2.7",
+    "disablePostinstall": "true"
   }
 }

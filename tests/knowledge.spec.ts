@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 test("knowledge approval, source search, withdrawal and honest draft abstention", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/signin");
   await page
     .getByRole("button", { name: "New here? Create a workspace" })
     .click();

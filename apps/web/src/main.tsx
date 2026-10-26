@@ -1,3 +1,6 @@
+import { Home } from "./Home";
+import { useDialogs } from "./useDialogs";
+import { Workflows } from "./Workflows";
 import { ReviewQueue } from "./ReviewQueue";
 import { Knowledge } from "./Knowledge";
 import { Drafts } from "./Drafts";
@@ -25,6 +28,14 @@ type Ticket = {
   priority: string;
   assigneeId: string | null;
   createdAt: string;
+  deliveries?: {
+    id: string;
+    status: string;
+    body: string;
+    recipient: string;
+    version: number;
+    createdAt: string;
+  }[];
   messages?: { id: string; body: string; createdAt: string }[];
 };
 type Me = {
@@ -36,7 +47,7 @@ type Me = {
     workspace: { name: string };
   }[];
 };
-const root = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const root = import.meta.env.VITE_API_URL ?? "";
 async function api(path: string, method = "GET", data?: unknown) {
   const r = await fetch(root + "/api" + path, {
     method,
@@ -49,6 +60,37 @@ async function api(path: string, method = "GET", data?: unknown) {
   return json;
 }
 function App() {
+  useDialogs();
+  const routeForPath = () =>
+    window.location.pathname === "/signup"
+      ? "signup"
+      : window.location.pathname === "/signin"
+        ? "signin"
+        : window.location.pathname === "/app"
+          ? "app"
+          : "home";
+  const [publicPage, setPublicPage] = useState(routeForPath);
+  function navigate(path: string, replace = false) {
+    if (replace) window.history.replaceState({}, "", path);
+    else window.history.pushState({}, "", path);
+    setPublicPage(routeForPath());
+    window.scrollTo({ top: 0 });
+  }
+  useEffect(() => {
+    const onBack = () => setPublicPage(routeForPath());
+    window.addEventListener("popstate", onBack);
+    return () => window.removeEventListener("popstate", onBack);
+  }, []);
+  useEffect(() => {
+    document.title =
+      publicPage === "home"
+        ? "ResolveFlow AI · Your support team, on the same page."
+        : publicPage === "signup"
+          ? "Create a workspace · ResolveFlow AI"
+          : publicPage === "signin"
+            ? "Sign in · ResolveFlow AI"
+            : "Support workspace · ResolveFlow AI";
+  }, [publicPage]);
   const [me, setMe] = useState<Me | null>(null),
     [workspace, setWorkspace] = useState(""),
     [tickets, setTickets] = useState<Ticket[]>([]),
@@ -58,13 +100,18 @@ function App() {
     [status, setStatus] = useState(""),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
-    [register, setRegister] = useState(false),
+    [sessionLoading, setSessionLoading] = useState(true),
     [modal, setModal] = useState(false),
     [selected, setSelected] = useState<Ticket | null>(null),
     [tab, setTab] = useState("inbox"),
     [events, setEvents] = useState<any[]>([]),
     [busy, setBusy] = useState(false),
     [members, setMembers] = useState<any[]>([]);
+  const register = publicPage === "signup";
+  useEffect(() => {
+    if (me && (publicPage === "signin" || publicPage === "signup"))
+      navigate("/app", true);
+  }, [me, publicPage]);
   const base = "/workspaces/" + workspace;
   const writable =
     me?.memberships.find((m) => m.workspaceId === workspace)?.role !== "VIEWER";
@@ -88,7 +135,7 @@ function App() {
   useEffect(() => {
     loadMe()
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => setSessionLoading(false));
   }, []);
   async function refresh() {
     if (!workspace) return;
@@ -177,13 +224,23 @@ function App() {
   }
   async function update(data: unknown) {
     try {
-      await api(base + "/tickets/" + selected!.id, "PATCH", data);
-      await open(selected!.id);
+      const id = selected!.id;
+      await api(base + "/tickets/" + id, "PATCH", data);
+      const ticket = await api(base + "/tickets/" + id);
+      setSelected((current) => (current?.id === id ? ticket : current));
       await refresh();
     } catch (e) {
       setError((e as Error).message);
     }
   }
+  if (publicPage === "home")
+    return <Home signedIn={!!me} navigate={navigate} />;
+  if (publicPage === "app" && !me && sessionLoading)
+    return (
+      <main className="session-loading" role="status">
+        Opening your workspace…
+      </main>
+    );
   if (!me)
     return (
       <div className="auth">
@@ -205,6 +262,17 @@ function App() {
           </div>
         </div>
         <main className="auth-form">
+          <a
+            className="auth-home"
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              setError("");
+              navigate("/");
+            }}
+          >
+            ← Back to home
+          </a>
           <span className="eyebrow">YOUR SUPPORT WORKSPACE</span>
           <h2>{register ? "Start a new workspace" : "Welcome back"}</h2>
           <p>
@@ -226,6 +294,7 @@ function App() {
                   d,
                 );
                 await loadMe();
+                navigate("/app");
               })
             }
           >
@@ -257,7 +326,7 @@ function App() {
               />
               <small>At least 12 characters</small>
             </label>
-            <button className="primary" disabled={busy || loading}>
+            <button className="primary" disabled={busy || sessionLoading}>
               {busy
                 ? "Please wait…"
                 : register
@@ -269,7 +338,7 @@ function App() {
           <button
             className="text"
             onClick={() => {
-              setRegister(!register);
+              navigate(register ? "/signin" : "/signup");
               setError("");
             }}
           >
@@ -340,6 +409,13 @@ function App() {
             <ShieldCheck size={19} />
             Review queue
           </button>
+          <button
+            className={tab === "workflows" ? "active" : ""}
+            onClick={() => setTab("workflows")}
+          >
+            <Activity size={19} />
+            Workflows
+          </button>
         </nav>
         <div className="sidebar-note">
           <ShieldCheck size={22} />
@@ -353,6 +429,8 @@ function App() {
               await api("/auth/logout", "POST");
               setMe(null);
               setTickets([]);
+              setWorkspace("");
+              navigate("/signin");
             } catch (e) {
               setError((e as Error).message);
             }
@@ -378,7 +456,9 @@ function App() {
                   ? "Knowledge base"
                   : tab === "reviews"
                     ? "Review queue"
-                    : "Activity log"}
+                    : tab === "workflows"
+                      ? "Workflows"
+                      : "Activity log"}
           </span>
           <span className="secure">
             <span /> Workspace connected
@@ -397,7 +477,9 @@ function App() {
                       ? "Answers start with evidence."
                       : tab === "reviews"
                         ? "A human decision, every time."
-                        : "Every action, accounted for."}
+                        : tab === "workflows"
+                          ? "Every workflow, accounted for."
+                          : "Every action, accounted for."}
               </h1>
               <p>
                 {tab === "inbox"
@@ -423,7 +505,17 @@ function App() {
               <button onClick={() => setError("")}>Dismiss</button>
             </div>
           )}
-          {tab === "reviews" ? (
+          {tab === "workflows" ? (
+            <Workflows
+              key={workspace}
+              workspace={workspace}
+              role={
+                me.memberships.find((m) => m.workspaceId === workspace)?.role ||
+                ""
+              }
+              api={api}
+            />
+          ) : tab === "reviews" ? (
             <ReviewQueue
               key={workspace}
               workspace={workspace}
@@ -760,6 +852,23 @@ function App() {
               <div role="alert" className="error">
                 {error}
               </div>
+            )}
+            {!!selected.deliveries?.length && (
+              <section className="messages">
+                <h3>Response delivery</h3>
+                {selected.deliveries.map((d) => (
+                  <article key={d.id}>
+                    <span className="eyebrow">
+                      {d.status === "LOCAL_CAPTURED"
+                        ? "LOCAL CAPTURE · NO EMAIL SENT"
+                        : d.status}{" "}
+                      · VERSION {d.version}
+                    </span>
+                    <small>{d.recipient}</small>
+                    <p>{d.body}</p>
+                  </article>
+                ))}
+              </section>
             )}
             <Drafts
               key={workspace + selected.id}

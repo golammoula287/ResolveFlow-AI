@@ -1,3 +1,10 @@
+import { resendHooks } from "./resend-hooks.js";
+import { timingSafeEqual, randomUUID } from "node:crypto";
+import {
+  workflowRoutes,
+  inboundHooks,
+  type WorkflowConfig,
+} from "./workflow-routes.js";
 import { reviewRoutes } from "./reviews.js";
 import { knowledgeRoutes } from "./knowledge.js";
 import { ServiceError, type AiProvider } from "./ai.js";
@@ -10,7 +17,7 @@ import express, {
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, type Store } from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { PrismaClient, Prisma } from "@prisma/client";
@@ -21,7 +28,14 @@ const credentials = z.object({
     .email()
     .max(254)
     .transform((v) => v.toLowerCase()),
-  password: z.string().min(12).max(128),
+  password: z
+    .string()
+    .min(12)
+    .max(128)
+    .refine(
+      (v) => Buffer.byteLength(v, "utf8") <= 72,
+      "Password must be at most 72 UTF-8 bytes",
+    ),
 });
 const createTicket = z.object({
   subject: z.string().trim().min(1).max(200),
@@ -36,10 +50,39 @@ export function createApp(
     origin: string;
     production?: boolean;
     ai?: AiProvider;
+    aiRequestLimit?: number;
+    rateStore?: (prefix: string) => Store;
+    aiPricing?: { input?: number; output?: number; embedding?: number };
+    workflows?: WorkflowConfig;
+    cronSecret?: string;
+    resendWebhookSecret?: string;
+    runCron?: () => Promise<void>;
   },
 ) {
   const app = express();
   app.disable("x-powered-by");
+  if (process.env.VERCEL) app.set("trust proxy", 1);
+  app.use((req, res, next) => {
+    const started = Date.now();
+    const requestId = randomUUID();
+    res.set("X-Request-ID", requestId);
+    res.on("finish", () => {
+      if (process.env.NODE_ENV !== "test")
+        console.log(
+          JSON.stringify({
+            level: "info",
+            requestId,
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            durationMs: Date.now() - started,
+          }),
+        );
+    });
+    next();
+  });
+  inboundHooks(app, db, config.workflows?.webhookSecret);
+  resendHooks(app, db, config.resendWebhookSecret);
   app.use(
     helmet(),
     cors({ origin: config.origin, credentials: true }),
@@ -56,7 +99,11 @@ export function createApp(
     }
     next();
   });
-  const authLimit = rateLimit({ windowMs: 900000, limit: 30 });
+  const authLimit = rateLimit({
+    windowMs: 900000,
+    limit: 30,
+    store: config.rateStore?.("auth"),
+  });
   const session = (res: Response, id: string) =>
     res.cookie(
       "rf_session",
@@ -114,6 +161,24 @@ export function createApp(
     res.clearCookie("rf_session", { path: "/" });
     res.sendStatus(204);
   });
+  app.get("/api/cron/workflows", async (req, res) => {
+    const expected = "Bearer " + (config.cronSecret ?? "");
+    const provided = req.headers.authorization ?? "";
+    if (
+      !config.cronSecret ||
+      Buffer.byteLength(provided) !== Buffer.byteLength(expected) ||
+      !timingSafeEqual(Buffer.from(provided), Buffer.from(expected))
+    ) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!config.runCron) {
+      res.status(503).json({ error: "Redis is not configured" });
+      return;
+    }
+    await config.runCron();
+    res.set("Cache-Control", "no-store").json({ ok: true });
+  });
   app.use("/api", (req, res, next) => {
     try {
       const token = jwt.verify(req.cookies.rf_session ?? "", config.secret, {
@@ -163,8 +228,16 @@ export function createApp(
     }
     next();
   });
-  knowledgeRoutes(app, db, config.ai);
+  knowledgeRoutes(
+    app,
+    db,
+    config.ai,
+    config.aiRequestLimit,
+    config.rateStore?.("ai"),
+    config.aiPricing,
+  );
   reviewRoutes(app, db);
+  workflowRoutes(app, db, config.workflows ?? {});
   const base = "/api/workspaces/:workspaceId";
   app.get(base + "/tickets", async (req, res) => {
     const query = z
@@ -221,13 +294,30 @@ export function createApp(
         id: z.string().parse(req.params.id),
         workspaceId: res.locals.workspaceId,
       },
-      include: { messages: { orderBy: { createdAt: "asc" } } },
+      include: {
+        messages: { orderBy: { createdAt: "asc" } },
+        drafts: {
+          select: {
+            deliveries: {
+              select: {
+                id: true,
+                status: true,
+                body: true,
+                recipient: true,
+                version: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+      },
     });
     if (!ticket) {
       res.status(404).json({ error: "Ticket not found" });
       return;
     }
-    res.json(ticket);
+    const { drafts, ...detail } = ticket;
+    res.json({ ...detail, deliveries: drafts.flatMap((d) => d.deliveries) });
   });
   app.patch(base + "/tickets/:id", async (req, res) => {
     const input = z

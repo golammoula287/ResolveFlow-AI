@@ -11,7 +11,7 @@ test("review queue binds approval to a version and keeps revision/rejection hist
   });
   try {
     const email = `review-${randomUUID()}@example.test`;
-    await page.goto("/");
+    await page.goto("/signin");
     await page
       .getByRole("button", { name: "New here? Create a workspace" })
       .click();

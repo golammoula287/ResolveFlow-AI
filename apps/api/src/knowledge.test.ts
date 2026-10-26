@@ -362,6 +362,58 @@ test(
         (await req("get", `/api/workspaces/${wb}/ai/runs`, b)).body.length,
         0,
       );
+      const revision = await req(
+        "post",
+        `/api/workspaces/${wa}/documents/${doc}/versions`,
+      ).send({
+        title: "Updated refund policy",
+        filename: "refunds.md",
+        content: "Refunds are available within 14 days.",
+      });
+      assert.equal(revision.status, 201);
+      assert.equal(revision.body.version, 2);
+      assert.equal(
+        (await req("get", `/api/workspaces/${wa}/documents/${doc}/versions`))
+          .body.length,
+        2,
+      );
+      assert.equal(
+        (
+          await req("patch", `/api/workspaces/${wa}/documents/${doc}`).send({
+            approved: true,
+          })
+        ).status,
+        409,
+      );
+      assert.equal(
+        (
+          await req(
+            "patch",
+            `/api/workspaces/${wa}/documents/${revision.body.id}`,
+          ).send({ approved: true })
+        ).status,
+        200,
+      );
+      const passage = await db.knowledgeChunk.findFirstOrThrow({
+        where: { documentId: revision.body.id },
+      });
+      const manual = await req(
+        "post",
+        `/api/workspaces/${wa}/tickets/${id}/manual-drafts`,
+      ).send({
+        body: "Please request a refund within 14 days.",
+        citations: [{ chunkId: passage.id, quote: "within 14 days" }],
+      });
+      assert.equal(manual.status, 201);
+      assert.equal(manual.body.origin, "HUMAN");
+      assert.equal(
+        await db.draftRevision.count({ where: { draftId: manual.body.id } }),
+        1,
+      );
+      assert.ok(
+        (await req("get", `/api/workspaces/${wa}/documents/failures`)).body
+          .length >= 4,
+      );
       assert.equal(
         (await req("delete", `/api/workspaces/${wa}/documents/${doc}`)).status,
         200,

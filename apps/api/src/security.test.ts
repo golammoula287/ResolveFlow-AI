@@ -105,3 +105,33 @@ test("expired and tampered sessions cannot access workspace resources", async ()
     assert.equal(result.status, 401);
   }
 });
+
+test("cron rejects unauthorized requests and runs only with the configured secret", async () => {
+  let calls = 0;
+  const app = createApp({} as PrismaClient, {
+    secret,
+    origin,
+    cronSecret: "cron-secret-with-at-least-32-characters",
+    runCron: async () => {
+      calls++;
+    },
+  });
+  assert.equal((await request(app).get("/api/cron/workflows")).status, 401);
+  assert.equal(
+    (
+      await request(app)
+        .get("/api/cron/workflows")
+        .set("Authorization", "Bearer wrong")
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request(app)
+        .get("/api/cron/workflows")
+        .set("Authorization", "Bearer cron-secret-with-at-least-32-characters")
+    ).status,
+    200,
+  );
+  assert.equal(calls, 1);
+});

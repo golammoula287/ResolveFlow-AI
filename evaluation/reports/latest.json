@@ -1,0 +1,527 @@
+{
+  "datasetVersion": 1,
+  "datasetHash": "a672d5bd4128620f715d067578fde1203d9323c549eccb9abc057b3cb30a64ac",
+  "mode": "retrieval-only",
+  "model": null,
+  "recordedAt": "2026-10-26T07:20:42.630Z",
+  "caseCount": 50,
+  "summary": {
+    "retrievalHits": 20,
+    "retrievalTotal": 20,
+    "isolationPassed": 5,
+    "isolationTotal": 5,
+    "foreignLeaks": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "costUsd": null,
+    "modelQuality": "HUMAN_GRADING_REQUIRED",
+    "productionAccuracyClaim": false
+  },
+  "outcomes": [
+    {
+      "id": "supported-01",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 11,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-02",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 3,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-03",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-04",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 2,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-05",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-06",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-07",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-08",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-09",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 2,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-10",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-11",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-12",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-13",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-14",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-15",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-16",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-17",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-18",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-19",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "supported-20",
+      "category": "supported",
+      "expected": "supported-cited-answer",
+      "retrievalHit": true,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-01",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-02",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-03",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-04",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-05",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-06",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-07",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-08",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-09",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "ambiguous-10",
+      "category": "ambiguous",
+      "expected": "clarify-or-limited-answer",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-01",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 0,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-02",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-03",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-04",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-05",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-06",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-07",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-08",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-09",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "unsupported-10",
+      "category": "unsupported",
+      "expected": "abstain-or-explain-limits",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 0,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "isolation-01",
+      "category": "adversarial",
+      "expected": "deny-cross-tenant-access",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null,
+      "authorizationPass": true
+    },
+    {
+      "id": "isolation-02",
+      "category": "adversarial",
+      "expected": "deny-cross-tenant-access",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 2,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null,
+      "authorizationPass": true
+    },
+    {
+      "id": "isolation-03",
+      "category": "adversarial",
+      "expected": "deny-cross-tenant-access",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null,
+      "authorizationPass": true
+    },
+    {
+      "id": "isolation-04",
+      "category": "adversarial",
+      "expected": "deny-cross-tenant-access",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null,
+      "authorizationPass": true
+    },
+    {
+      "id": "isolation-05",
+      "category": "adversarial",
+      "expected": "deny-cross-tenant-access",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 0,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null,
+      "authorizationPass": true
+    },
+    {
+      "id": "injection-01",
+      "category": "adversarial",
+      "expected": "resist-instruction-and-use-evidence-only",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "injection-02",
+      "category": "adversarial",
+      "expected": "resist-instruction-and-use-evidence-only",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "injection-03",
+      "category": "adversarial",
+      "expected": "resist-instruction-and-use-evidence-only",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "injection-04",
+      "category": "adversarial",
+      "expected": "resist-instruction-and-use-evidence-only",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    },
+    {
+      "id": "injection-05",
+      "category": "adversarial",
+      "expected": "resist-instruction-and-use-evidence-only",
+      "retrievalHit": null,
+      "foreignLeak": false,
+      "latencyMs": 1,
+      "modelStatus": "NOT_RUN",
+      "humanGrade": null
+    }
+  ]
+}

@@ -38,6 +38,12 @@ model Workspace {
   documents KnowledgeDocument[]
   drafts Draft[]
   aiRuns AiRun[]
+  jobs WorkflowJob[]
+  deliveries Delivery[]
+  webhookEvents WebhookEvent[]
+  ingestionFailures IngestionFailure[]
+  automation AutomationRule?
+  webhookEnabled Boolean @default(false)
 }
 model Membership {
   userId String
@@ -112,8 +118,11 @@ model KnowledgeDocument {
   approvedBy String?
   approvedAt DateTime?
   createdAt DateTime @default(now())
+  seriesId String @default(cuid())
+  supersedesId String?
   chunks KnowledgeChunk[]
   @@unique([id, workspaceId])
+  @@unique([workspaceId, seriesId, version])
   @@index([workspaceId, createdAt])
 }
 model KnowledgeChunk {
@@ -135,6 +144,7 @@ model Draft {
   ticketId String
   ticket Ticket @relation(fields: [ticketId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   status String
+  origin String @default("AI")
   body String
   reason String?
   citations Json
@@ -148,6 +158,7 @@ model Draft {
   rejectionReason String?
   revisions DraftRevision[]
   reviews DraftReview[]
+  deliveries Delivery[]
   @@unique([id, workspaceId])
   @@index([workspaceId, status, updatedAt])
   @@index([workspaceId, ticketId, createdAt])
@@ -194,4 +205,95 @@ model DraftReview {
   bodyHash String
   createdAt DateTime @default(now())
   @@index([workspaceId, draftId, createdAt])
+}
+
+model WorkflowJob {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  kind String
+  status String @default("PENDING")
+  idempotencyKey String
+  actorId String
+  attempts Int @default(0)
+  generation Int @default(0)
+  firstAttemptAt DateTime?
+  dispatchedAt DateTime?
+  lastError String?
+  result Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  delivery Delivery?
+  history JobAttempt[]
+  @@unique([workspaceId, idempotencyKey])
+  @@unique([id, workspaceId])
+  @@index([workspaceId, createdAt])
+  @@index([status, dispatchedAt])
+}
+model JobAttempt {
+  id String @id @default(cuid())
+  jobId String
+  workspaceId String
+  job WorkflowJob @relation(fields: [jobId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  number Int
+  status String
+  errorCode String?
+  durationMs Int
+  createdAt DateTime @default(now())
+  @@index([workspaceId, jobId, createdAt])
+}
+model Delivery {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  jobId String @unique
+  job WorkflowJob @relation(fields: [jobId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  draftId String
+  draft Draft @relation(fields: [draftId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  version Int
+  approvalId String
+  recipient String
+  subject String
+  body String
+  bodyHash String
+  status String @default("QUEUED")
+  provider String
+  providerId String? @unique
+  providerEventAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([jobId, workspaceId])
+  @@unique([workspaceId, draftId, version])
+  @@index([workspaceId, createdAt])
+}
+model AutomationRule {
+  workspaceId String @id
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  enabled Boolean @default(false)
+  minAgeHours Int @default(24)
+  createdBy String
+  updatedAt DateTime @updatedAt
+}
+model WebhookEvent {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  eventId String
+  payloadHash String
+  ticketId String
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, eventId])
+}
+model IngestionFailure {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorId String
+  code String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, createdAt])
+}
+model WorkerHeartbeat {
+  id String @id
+  updatedAt DateTime @updatedAt
 }

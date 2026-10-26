@@ -66,3 +66,38 @@ Groq validation: production builds passed; all 18 API/unit/database tests passed
 - Added shared review controls to ticket details and the Review queue page, including editor, required confirmation/rejection reason, source inspection and revision/decision history. Human edits retain original evidence, requiring a fresh manual check.
 - Production builds, all 19 API/unit/database tests and all three Chromium workflows passed. Four migrations apply to disposable PostgreSQL. Browser review fixture is hand-authored synthetic data; no live provider call is made.
 - Next: Redis/BullMQ worker, idempotent approved delivery and rules automation. Approval currently never queues or sends a customer message. Groq remains selected; live provider/quality evaluation remains pending.
+
+## Completion build — 2026-10-26
+User requested completing all remaining work, then chose Vercel hosting. Implemented the remaining repository features and local verification:
+
+- PostgreSQL durable outbox, Redis/BullMQ retries/backoff, idempotent attempts, recovery, worker authorization and exact-version approved delivery. Added local file capture (explicitly not email) and Resend integration with stable idempotency keys, 23-hour uncertainty cutoff and signed/deduplicated delivery outcome webhooks.
+- Priority escalation rules and manual/scheduled runs; signed tenant ticket webhooks with timestamp, bound event ID/body and duplicate rejection. Real worker tests exercise Redis and actual capture files; external provider calls remain doubles in tests.
+- Document replacement/version history, superseded-source handling and persisted ingestion failure codes; human-written cited manual responses explicitly labelled HUMAN. Measured operations/review/usage metrics and optional server price snapshots; unknown costs stay null.
+- Shared Redis auth/AI limits, request correlation logs and keyboard dialog behavior. Fixed a browser-discovered race that reopened a ticket after close during an update.
+- Vercel function entry, same-origin frontend, hosted-service template, daily cron fallback and bounded authenticated manual/cron job processing. Continuous worker remains available for a separate host/local dev. Vercel local capture is rejected because its filesystem is ephemeral. Actual deployment requires user service credentials.
+- Frozen 50-case dataset/rubric/hash and retrieval/live evaluation runners. Retrieval run: 20/20 expected-source hits, 5/5 direct isolation probes denied, zero foreign passages. Model-quality fields remain ungraded; no live Groq calls were made.
+- Combined release check passed: production builds/Prisma generation, five migrations, 22 API/unit/PostgreSQL/Redis tests, five Chromium workflows and retrieval evaluation. Vercel entry bundles with esbuild. CI configuration updated; remote CI remains unverified.
+- Synthetic demo seed, Vercel/operations/demo/architecture docs and portfolio notes. Captured screenshots and an actual 92.12-second captioned video at docs/artifacts/walkthrough.webm; the video discloses human-written responses and local capture. No live AI/email/deployment success is implied.
+
+Remaining work requires external state: Groq key/live grading, hosted database/Redis, verified Resend sender and signing secret, Vercel account/configuration/deployment, remote CI and independent live demo review. Do not invent success for these gates. See the rewritten PLAN.md and docs/VERCEL.md. Old phase plan retained in docs/PLAN_BEFORE_RELEASE.md.
+
+Final local handoff: the fifth migration was applied to persistent local PostgreSQL, the API/frontend/worker are running under npm run dev:local, synthetic demo accounts were seeded, /api/health returned ok and the frontend returned HTTP 200. Local delivery mode remains local file capture. Verification evidence is in docs/VERIFICATION.md; live service gates remain as listed in PLAN.md.
+
+## Public marketing homepage — 2026-10-26
+User requested an advertising homepage before sign-in. Added a responsive branded landing page with a labelled illustrative product preview, feature benefits, request-to-delivery walkthrough, workspace/role explanation, FAQ and signup/sign-in calls to action. No fabricated testimonials, customer counts, pricing or performance metrics were added.
+
+Public paths are `/`, `/signin`, `/signup`; the authenticated workspace uses `/app`. History/back navigation and deep links work with the existing Vercel SPA rewrite. Signed-in visitors can open their workspace from the homepage. Auth forms link back home; logout returns to sign-in. Session loading is separate from inbox loading to keep sign-in usable after logout.
+
+Built production assets successfully. All seven Chromium workflows passed, including desktop/mobile homepage, CTA/FAQ/browser-history checks, no horizontal mobile overflow, signup/login/logout and signed-in homepage-to-workspace navigation. Existing ticket/knowledge/review/delivery workflows passed. Desktop/mobile screenshots are saved in docs/artifacts/home-desktop.png and home-mobile.png. No backend behavior or hosting provider was changed, and no Site was published.
+
+## Homepage visual revision — 2026-10-26
+User requested a less AI-generated appearance and was understood to request no arrow icons. Rebuilt the public page with a restrained editorial layout, paper/ink palette, serif accents, simpler copy and fewer repeated cards. Replaced the illustrative interface with actual synthetic-demo product screenshots served as static public assets. Added keyboard-accessible inbox/knowledge/review screenshot tabs and removed homepage arrow/chevron/sparkle icons. Auth routes and workspace functionality are preserved. Production builds and all seven browser workflows passed; desktop/mobile screenshots were refreshed. User then explicitly requested starting the server.
+
+## User-supplied Neon database and demo login — 2026-10-26
+User supplied a Neon DATABASE_URL in the ignored API environment and requested a demo login. Confirmed the database was reachable and had no public tables, then applied all five existing migrations without resetting data. Created the requested demo account with a bcrypt password hash and an OWNER membership in Demo workspace. No plaintext password was saved in tracked files.
+
+Added npm run dev:connected for the configured hosted database; it skips embedded PostgreSQL and can still manage local Redis. Restarted frontend/API/worker against Neon. Login and owner-workspace verification are performed against the running API. Delivery remains in local capture mode; no external customer message is sent.
+
+## Existing-workspace demo seed — 2026-10-26
+Added `npm run demo:workspace` with explicit account selection, confirmation and hosted-database opt-in. Seeded the requested account's Demo workspace in Neon with 12 labelled fictional tickets, five fictional approved policies and three HUMAN drafts with source citations and initial revisions. Mutations have demo-specific audit events in the same transaction. Existing accounts/passwords and records are preserved; no AI runs, review decisions, delivery jobs or emails are fabricated. Customer addresses use example.test. See docs/DEMO.md for repeatable usage.
+Verified a second run created zero tickets, documents or drafts. No destructive integration tests were run against Neon.
