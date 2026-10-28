@@ -1,3 +1,5 @@
+const apiOrigin = process.env.TEST_API_ORIGIN || "http://localhost:4000";
+const webOrigin = process.env.TEST_WEB_ORIGIN || "http://localhost:5173";
 import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { mkdir, copyFile } from "node:fs/promises";
@@ -41,18 +43,15 @@ test("human response reaches approved local capture through the real Redis worke
     .getByRole("button", { name: "Create workspace", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Your support, in flow." }),
+    page.getByRole("heading", { name: "Ticket inbox" }),
   ).toBeVisible();
   await scene(
     "Each account belongs to an authorized workspace. All records in this walkthrough are synthetic.",
     7000,
   );
-  const me = await (
-    await page.request.get("http://localhost:4000/api/me")
-  ).json();
-  const base =
-    "http://localhost:4000/api/workspaces/" + me.memberships[0].workspaceId;
-  const origin = { Origin: "http://localhost:5173" };
+  const me = await (await page.request.get(apiOrigin + "/api/me")).json();
+  const base = apiOrigin + "/api/workspaces/" + me.memberships[0].workspaceId;
+  const origin = { Origin: webOrigin };
   const doc = await (
     await page.request.post(base + "/documents", {
       headers: origin,

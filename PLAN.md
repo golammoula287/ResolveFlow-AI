@@ -89,3 +89,26 @@ The remaining repository implementation, local verification and handoff artifact
 ## Hosted demo workspace data
 - [x] Add an explicit, repeatable seed for an existing owner's workspace without changing credentials or resetting records.
 - [x] Populate the requested Neon workspace with 12 fictional tickets, five policy documents and three human-written drafts; preserve real AI/delivery activity metrics.
+
+## UI-only refinement — 2026-10-27
+- [x] Unify dashboard/auth/home presentation with readable typography, a warm neutral palette, clearer navigation and review surfaces.
+- [x] Improve phone layouts, retain workspace selection and show ticket metadata without horizontal table scrolling.
+- [x] Refresh public product screenshots; verify frontend production build and desktop/mobile screens using isolated fictional API responses, preserving live data and backend behavior.
+- [x] Replace green with a soothing slate-blue, lavender and ivory palette across all UI surfaces; refresh previews and verify desktop/mobile presentation.
+
+## Product-focused visual redesign — 2026-10-27
+- [x] Rebuild the homepage around a concrete support example, product previews, a shorter walkthrough and honest intake/delivery FAQs.
+- [x] Replace dashboard slogans and decorative summary cards with plain titles, compact inbox context and a focused ticket side panel.
+- [x] Refine sign-in, knowledge, team and review presentation while preserving existing workflows and the softer palette.
+- [x] Verify desktop/mobile layouts, production frontend build and all seven browser workflows against disposable services on separate ports; leave the running Neon demo untouched.
+
+## User's purple reference and visuals
+- [x] Apply the supplied plum/violet/lilac direction across public and authenticated screens.
+- [x] Add an original responsive SVG workflow illustration to homepage and desktop authentication; preserve honest demo labels.
+- [x] Refresh product previews and verify desktop/mobile presentation and frontend production build without touching live data.
+- [x] Add a desktop/mobile Back to home control in the workspace header; verify navigation preserves the session and frontend builds.
+- [x] Apply the user's replacement cream/caramel/brown/espresso reference across UI and illustration, refresh previews and verify frontend build plus desktop/mobile layouts.
+- [x] Darken sidebar and contain page scrolling below the header on desktop/mobile; verify scroll behavior, frontend build and all seven browser workflows.
+- [x] Apply the user's latest navy/blue/gray reference across UI and illustration, retaining the dark sidebar and independent scrolling; refresh previews and verify desktop/mobile layout and frontend build.
+- [x] Add an original shared logo/favicon, gentle motion with reduced-motion support, stable preview switching, accurate loading hints and reliable dialog focus; verify browser regressions and UI stability.
+- [x] Add subtle scroll-triggered reveals to homepage sections with reduced-motion and browser fallback support.

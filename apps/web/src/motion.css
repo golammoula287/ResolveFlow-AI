@@ -1,0 +1,173 @@
+/* Small, predictable motions; no animated layout dimensions or loading shimmer. */
+.logo-mark {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.session-loading {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  background: #f7f8fa;
+  color: #456982;
+  font-size: 13px;
+}
+.shell .brand .logo-mark,
+.auth-story .brand .logo-mark {
+  width: 31px;
+  height: 31px;
+}
+.home-brand .logo-mark {
+  width: 30px;
+  height: 30px;
+}
+.home-footer .home-brand .logo-mark {
+  width: 25px;
+  height: 25px;
+}
+.shell aside .logo-mark .logo-tile {
+  fill: #d6e3ec;
+}
+.shell aside .logo-mark .logo-stroke {
+  stroke: #1c3c50;
+}
+.shell aside .logo-mark .logo-dot {
+  fill: #456982;
+}
+.home-screen-image {
+  height: clamp(240px, 43vw, 580px);
+  max-height: none;
+  scrollbar-gutter: stable;
+}
+.home-screen-image img[hidden] {
+  display: none;
+}
+.home-screen-caption p {
+  min-height: 40px;
+}
+.shell .page {
+  scrollbar-gutter: stable;
+}
+.shell aside {
+  scrollbar-width: thin;
+  scrollbar-color: #48677b #142f40;
+}
+.shell .ticket-inbox {
+  position: relative;
+}
+.shell .ticket-inbox[aria-busy="true"] .toolbar {
+  border-bottom-color: #9eb9cb;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .home-hero-copy {
+    animation: soft-arrive 650ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+  .home-hero > .support-visual {
+    animation: soft-arrive 800ms 100ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+  .support-visual:not(.compact) svg {
+    animation: illustration-drift 9s 1s ease-in-out infinite;
+  }
+  .auth-form {
+    animation: soft-arrive 420ms ease-out both;
+  }
+  .marketing.reveal-ready [data-reveal] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 650ms ease-out,
+      transform 650ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .marketing.reveal-ready [data-reveal].is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .overlay {
+    animation: quiet-fade 140ms ease-out both;
+  }
+  .overlay .dialog {
+    animation: dialog-arrive 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+  .home-menu,
+  .workspace-home,
+  .home-product-tabs button,
+  .shell aside nav button,
+  .shell .tabs button {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease,
+      border-color 180ms ease;
+  }
+  :is(.marketing, .shell, .auth, .overlay) .primary,
+  .marketing .home-button {
+    transition:
+      background-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :is(.marketing, .shell, .auth, .overlay) .primary:not(:disabled):hover,
+    .marketing .home-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 9px #1c3c5014;
+    }
+    :is(.marketing, .shell, .auth, .overlay) .primary:not(:disabled):active,
+    .marketing .home-button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+  }
+}
+@keyframes soft-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes quiet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialog-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes illustration-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.marketing, .shell, .auth, .overlay) *,
+  :is(.marketing, .shell, .auth, .overlay) *::before,
+  :is(.marketing, .shell, .auth, .overlay) *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (max-width: 750px) {
+  .home-screen-caption p {
+    min-height: 60px;
+  }
+}

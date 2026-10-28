@@ -1,24 +1,30 @@
+import { LogoMark } from "./LogoMark";
+import { SupportVisual } from "./SupportVisual";
 import { Home } from "./Home";
 import { useDialogs } from "./useDialogs";
 import { Workflows } from "./Workflows";
 import { ReviewQueue } from "./ReviewQueue";
 import { Knowledge } from "./Knowledge";
 import { Drafts } from "./Drafts";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Inbox,
   Activity,
-  Layers,
   Plus,
   Search,
   ArrowUpRight,
   LogOut,
   X,
   Send,
-  ShieldCheck,
+  BookOpen,
+  Users,
+  GitBranch,
+  ClipboardCheck,
+  House,
 } from "lucide-react";
 import "./style.css";
+import "./workspace.css";
 import { Team } from "./Team";
 type Ticket = {
   id: string;
@@ -84,7 +90,7 @@ function App() {
   useEffect(() => {
     document.title =
       publicPage === "home"
-        ? "ResolveFlow AI · Your support team, on the same page."
+        ? "ResolveFlow AI · Customer support, with context."
         : publicPage === "signup"
           ? "Create a workspace · ResolveFlow AI"
           : publicPage === "signin"
@@ -108,6 +114,10 @@ function App() {
     [busy, setBusy] = useState(false),
     [members, setMembers] = useState<any[]>([]);
   const register = publicPage === "signup";
+  const pageRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    pageRef.current?.scrollTo({ top: 0 });
+  }, [tab, workspace]);
   useEffect(() => {
     if (me && (publicPage === "signin" || publicPage === "signup"))
       navigate("/app", true);
@@ -238,6 +248,7 @@ function App() {
   if (publicPage === "app" && !me && sessionLoading)
     return (
       <main className="session-loading" role="status">
+        <LogoMark />
         Opening your workspace…
       </main>
     );
@@ -246,19 +257,21 @@ function App() {
       <div className="auth">
         <div className="auth-story">
           <div className="brand">
-            <Layers /> ResolveFlow<span>AI</span>
+            <LogoMark /> ResolveFlow<span>AI</span>
           </div>
-          <h1>
-            Good support.
-            <br />
-            Better flow.
-          </h1>
-          <p>
-            A focused workspace for the people behind every customer
-            conversation.
-          </p>
+          <div className="auth-intro">
+            <span className="auth-caption">
+              The daily work of customer support
+            </span>
+            <h1>Pick up the conversation.</h1>
+            <p>
+              A place for the question, the policy, and the reply you’ve
+              checked.
+            </p>
+          </div>
+          <SupportVisual compact />
           <div className="promise">
-            <ShieldCheck /> Workspace boundaries. Human decisions.
+            Your policies. Your workspace. Your team’s decision.
           </div>
         </div>
         <main className="auth-form">
@@ -353,7 +366,7 @@ function App() {
     <div className="shell">
       <aside>
         <div className="brand">
-          <Layers /> ResolveFlow<span>AI</span>
+          <LogoMark /> ResolveFlow<span>AI</span>
         </div>
         <label className="workspace-label">
           WORKSPACE
@@ -373,9 +386,10 @@ function App() {
           </select>
         </label>
         <div className="nav-caption">WORKSPACE</div>
-        <nav>
+        <nav aria-label="Workspace navigation">
           <button
             className={tab === "inbox" ? "active" : ""}
+            aria-current={tab === "inbox" ? "page" : undefined}
             onClick={() => setTab("inbox")}
           >
             <Inbox size={19} />
@@ -383,6 +397,7 @@ function App() {
           </button>
           <button
             className={tab === "activity" ? "active" : ""}
+            aria-current={tab === "activity" ? "page" : undefined}
             onClick={() => setTab("activity")}
           >
             <Activity size={19} />
@@ -390,37 +405,48 @@ function App() {
           </button>
           <button
             className={tab === "team" ? "active" : ""}
+            aria-current={tab === "team" ? "page" : undefined}
             onClick={() => setTab("team")}
           >
-            <ShieldCheck size={19} />
+            <Users size={19} />
             People & workspaces
           </button>
           <button
             className={tab === "knowledge" ? "active" : ""}
+            aria-current={tab === "knowledge" ? "page" : undefined}
             onClick={() => setTab("knowledge")}
           >
-            <Layers size={19} />
+            <BookOpen size={19} />
             Knowledge base
           </button>
           <button
             className={tab === "reviews" ? "active" : ""}
+            aria-current={tab === "reviews" ? "page" : undefined}
             onClick={() => setTab("reviews")}
           >
-            <ShieldCheck size={19} />
+            <ClipboardCheck size={19} />
             Review queue
           </button>
           <button
             className={tab === "workflows" ? "active" : ""}
+            aria-current={tab === "workflows" ? "page" : undefined}
             onClick={() => setTab("workflows")}
           >
-            <Activity size={19} />
+            <GitBranch size={19} />
             Workflows
           </button>
         </nav>
         <div className="sidebar-note">
-          <ShieldCheck size={22} />
-          <strong>Built around trust</strong>
-          <p>Every ticket and activity belongs to your workspace.</p>
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/");
+            }}
+          >
+            About ResolveFlow
+          </a>
+          <small>Support, with context.</small>
         </div>
         <button
           className="account"
@@ -446,7 +472,7 @@ function App() {
       </aside>
       <main className="content">
         <header>
-          <span>
+          <span className="workspace-breadcrumb">
             Workspace <span className="slash">/</span>{" "}
             {tab === "inbox"
               ? "Ticket inbox"
@@ -460,37 +486,57 @@ function App() {
                       ? "Workflows"
                       : "Activity log"}
           </span>
-          <span className="secure">
-            <span /> Workspace connected
-          </span>
+          <div className="workspace-header-actions">
+            <span className="secure">
+              {
+                me.memberships.find((m) => m.workspaceId === workspace)
+                  ?.workspace.name
+              }
+            </span>
+            <a
+              className="workspace-home"
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/");
+              }}
+            >
+              <House size={14} aria-hidden="true" />
+              Back to home
+            </a>
+          </div>
         </header>
-        <section className="page">
+        <section
+          className="page"
+          ref={pageRef}
+          tabIndex={0}
+          aria-label="Workspace content"
+        >
           <div className="heading">
             <div>
-              <span className="eyebrow">A LITTLE CLARITY. A BETTER DAY.</span>
               <h1>
                 {tab === "inbox"
-                  ? "Your support, in flow."
+                  ? "Ticket inbox"
                   : tab === "team"
-                    ? "A place for your team."
+                    ? "People & workspaces"
                     : tab === "knowledge"
-                      ? "Answers start with evidence."
+                      ? "Knowledge base"
                       : tab === "reviews"
-                        ? "A human decision, every time."
+                        ? "Review queue"
                         : tab === "workflows"
-                          ? "Every workflow, accounted for."
-                          : "Every action, accounted for."}
+                          ? "Workflows"
+                          : "Activity log"}
               </h1>
               <p>
                 {tab === "inbox"
-                  ? "Keep conversations moving, one resolution at a time."
+                  ? "Assign requests, keep notes, and work through the next reply."
                   : tab === "team"
-                    ? "The right people, with the right access."
+                    ? "Invite teammates and manage what they can access."
                     : tab === "knowledge"
-                      ? "Give your team trusted sources for every conversation."
+                      ? "Add and approve the policies your team uses to answer questions."
                       : tab === "reviews"
                         ? "Review the evidence before approving a response."
-                        : "A traceable history of your workspace’s support work."}
+                        : "Follow the actions and outcomes recorded in this workspace."}
               </p>
             </div>
             {tab === "inbox" && writable && (
@@ -548,31 +594,14 @@ function App() {
             />
           ) : tab === "inbox" ? (
             <>
-              <div className="summary">
-                <div>
-                  <span>Matching tickets</span>
-                  <strong>{total}</strong>
-                  <small>Across your current filters</small>
-                </div>
-                <div>
-                  <span>Workspace access</span>
-                  <strong className="word">
-                    {me.memberships
-                      .find((m) => m.workspaceId === workspace)
-                      ?.role.toLowerCase()}
-                  </strong>
-                  <small>Checked on every request</small>
-                </div>
-                <div className="summary-note">
-                  <ShieldCheck />
-                  <p>
-                    <b>You’re in control.</b>
-                    <br />
-                    Notes stay internal. No automatic customer sends.
-                  </p>
-                </div>
+              <div className="inbox-context">
+                <span>
+                  <strong>{total}</strong> {total === 1 ? "ticket" : "tickets"}{" "}
+                  matching your filters
+                </span>
+                <span>Replies need approval before delivery.</span>
               </div>
-              <div className="inbox">
+              <div className="inbox ticket-inbox" aria-busy={loading}>
                 <div className="toolbar">
                   <div className="tabs">
                     {["", "OPEN", "PENDING", "RESOLVED"].map((s) => (
@@ -661,9 +690,11 @@ function App() {
                         : "A clear inbox starts here."}
                     </h3>
                     <p>
-                      {q || status
-                        ? "No tickets match these filters."
-                        : "Create your first ticket to bring a conversation into the workspace."}
+                      {loading
+                        ? "Getting your workspace tickets."
+                        : q || status
+                          ? "No tickets match these filters."
+                          : "Create your first ticket to bring a conversation into the workspace."}
                     </p>
                   </div>
                 )}
@@ -709,8 +740,7 @@ function App() {
             </div>
           )}
           <div className="page-foot">
-            ResolveFlow AI{" "}
-            <span>Thoughtful support starts with a clear workspace.</span>
+            ResolveFlow AI <span>Internal notes stay in your workspace.</span>
           </div>
         </section>
       </main>

@@ -13,7 +13,7 @@ async function register(page: Page, email: string, workspace: string) {
     .getByRole("button", { name: "Create workspace", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Your support, in flow." }),
+    page.getByRole("heading", { name: "Ticket inbox" }),
   ).toBeVisible();
 }
 test("ticket lifecycle and email-bound invitation work across two browser sessions", async ({

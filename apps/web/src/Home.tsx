@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Layers, Menu, X } from "lucide-react";
+import { LogoMark } from "./LogoMark";
+import { SupportVisual } from "./SupportVisual";
+import { useLayoutEffect, useRef, useState } from "react";
+import { Menu, X } from "lucide-react";
 import "./home.css";
 type Props = { signedIn: boolean; navigate: (path: string) => void };
 const views = [
@@ -7,28 +9,64 @@ const views = [
     id: "inbox",
     name: "The inbox",
     image: "/product-inbox.png",
-    alt: "ResolveFlow ticket inbox with synthetic demo records",
-    caption: "Keep the conversation, its owner, and its next step together.",
+    alt: "Ticket inbox with fictional demo requests",
+    caption:
+      "Every request has an owner, a priority, and a place to pick up the conversation.",
   },
   {
     id: "knowledge",
     name: "The knowledge",
     image: "/product-knowledge.png",
-    alt: "ResolveFlow knowledge base showing an approved fictional refund policy",
-    caption: "Give your team a source to check, not just an answer to copy.",
+    alt: "Knowledge base with a fictional approved refund policy",
+    caption:
+      "Your policies are the source. Approve documents before they become evidence for a reply.",
   },
   {
     id: "review",
     name: "The review",
     image: "/product-review.png",
-    alt: "ResolveFlow review queue showing a human-written demo response approved at a specific version",
-    caption: "Review the actual words. Approve the version you stand behind.",
+    alt: "Human-written demo response awaiting review with source citations",
+    caption:
+      "Read the reply alongside its sources. Edit it, then approve the version you want to send.",
   },
 ];
 export function Home({ signedIn, navigate }: Props) {
-  const [menu, setMenu] = useState(false),
-    [view, setView] = useState("inbox");
-  const active = views.find((v) => v.id === view)!;
+  const [menu, setMenu] = useState(false);
+  const [view, setView] = useState(0);
+  useLayoutEffect(() => {
+    const page = document.querySelector<HTMLElement>(".marketing");
+    const sections = page?.querySelectorAll<HTMLElement>("[data-reveal]");
+    if (!page || !sections?.length) return;
+    const motionAllowed = window.matchMedia(
+      "(prefers-reduced-motion: no-preference)",
+    ).matches;
+    if (!motionAllowed || !("IntersectionObserver" in window)) {
+      sections.forEach((section) => section.classList.add("is-visible"));
+      return;
+    }
+    page.classList.add("reveal-ready");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -7% 0px" },
+    );
+    sections.forEach((section) => {
+      if (section.getBoundingClientRect().top < window.innerHeight * 0.9)
+        section.classList.add("is-visible");
+      else observer.observe(section);
+    });
+    return () => observer.disconnect();
+  }, []);
+  const active = views[view];
+  const previewRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    previewRef.current?.scrollTo({ top: 0 });
+  }, [view]);
   const start = signedIn ? "/app" : "/signup";
   function go(path: string) {
     return (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -49,9 +87,9 @@ export function Home({ signedIn, navigate }: Props) {
           onClick={go("/")}
           aria-label="ResolveFlow AI home"
         >
-          <Layers size={24} />
+          <LogoMark />
           <span>
-            ResolveFlow<span className="home-brand-ai"> AI</span>
+            ResolveFlow<span className="home-brand-ai">AI</span>
           </span>
         </a>
         <button
@@ -101,107 +139,110 @@ export function Home({ signedIn, navigate }: Props) {
       </header>
       <main id="home-main">
         <section className="home-container home-hero">
-          <div className="home-hero-title">
-            <span className="home-label">THE SUPPORT WORKSPACE</span>
-            <h1>
-              Your support team,
-              <br />
-              <em>on the same page.</em>
-            </h1>
-          </div>
           <div className="home-hero-copy">
-            <p>
-              Bring tickets, team knowledge, and response reviews together. Keep
-              the work organized while your people make the decisions.
-            </p>
-            <a className="home-button" href={start} onClick={go(start)}>
-              {signedIn ? "Open your workspace" : "Create your workspace"}
-            </a>
-            <a className="home-text-link" href="#workflow">
-              See how it works
-            </a>
-          </div>
-          <div className="home-hero-bottom">
-            <span>For the people behind the reply.</span>
-            <span>
-              Shared inbox <i />
-              Source-backed responses <i />
-              Human approval
+            <span className="home-kicker">
+              <span /> A workspace for customer support
             </span>
+            <h1>
+              A good reply starts
+              <br />
+              with the <em>right context.</em>
+            </h1>
+            <p>
+              The ticket, the policy, the person who can help. Keep them
+              together, and give your team a useful first draft to work with.
+            </p>
+            <div className="home-hero-actions">
+              <a className="home-button" href={start} onClick={go(start)}>
+                {signedIn ? "Open your workspace" : "Create your workspace"}
+              </a>
+              <a className="home-text-link" href="#workflow">
+                See how it works
+              </a>
+            </div>
+            <p className="home-small-note">
+              AI helps with the draft. Your team has the final say.
+            </p>
           </div>
+          <SupportVisual />
         </section>
         <section
           id="features"
           className="home-container home-product"
           aria-labelledby="product-title"
+          data-reveal
         >
-          <div className="home-product-bar">
-            <h2 id="product-title">A closer look at the product.</h2>
-            <div
-              className="home-product-tabs"
-              role="tablist"
-              aria-label="Product preview"
-            >
-              {views.map((v) => (
-                <button
-                  key={v.id}
-                  id={"tab-" + v.id}
-                  role="tab"
-                  aria-selected={view === v.id}
-                  aria-controls="product-panel"
-                  tabIndex={view === v.id ? 0 : -1}
-                  onClick={() => setView(v.id)}
-                  onKeyDown={(e) => {
-                    if (
-                      !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
-                        e.key,
-                      )
-                    )
-                      return;
-                    e.preventDefault();
-                    const i = views.findIndex((item) => item.id === view);
-                    const next =
-                      e.key === "Home"
-                        ? 0
-                        : e.key === "End"
-                          ? views.length - 1
-                          : (i +
-                              (e.key === "ArrowRight" ? 1 : -1) +
-                              views.length) %
-                            views.length;
-                    setView(views[next].id);
-                    document.getElementById("tab-" + views[next].id)?.focus();
-                  }}
-                >
-                  {v.name}
-                </button>
-              ))}
+          <div className="home-section-top">
+            <div>
+              <span className="home-section-label">Inside the workspace</span>
+              <h2 id="product-title">Less hunting for context.</h2>
             </div>
+            <p>
+              One place to work through a request,
+              <br />
+              from the first note to the reviewed reply.
+            </p>
+          </div>
+          <div
+            className="home-product-tabs"
+            role="tablist"
+            aria-label="Product preview"
+          >
+            {views.map((v, i) => (
+              <button
+                key={v.id}
+                id={"tab-" + v.id}
+                role="tab"
+                aria-selected={view === i}
+                aria-controls="product-panel"
+                tabIndex={view === i ? 0 : -1}
+                onClick={() => setView(i)}
+                onKeyDown={(e) => {
+                  if (
+                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)
+                  )
+                    return;
+                  e.preventDefault();
+                  const next =
+                    e.key === "Home"
+                      ? 0
+                      : e.key === "End"
+                        ? views.length - 1
+                        : (view +
+                            (e.key === "ArrowRight" ? 1 : -1) +
+                            views.length) %
+                          views.length;
+                  setView(next);
+                  document.getElementById("tab-" + views[next].id)?.focus();
+                }}
+              >
+                <span aria-hidden="true">0{i + 1}</span>
+                {v.name}
+              </button>
+            ))}
           </div>
           <div
             className="home-screen-frame"
             id="product-panel"
             role="tabpanel"
-            aria-labelledby={"tab-" + view}
+            aria-labelledby={"tab-" + active.id}
           >
             <div className="home-screen-top">
-              <span className="home-window-dots">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span>ResolveFlow / {active.name.toLowerCase()}</span>
-              <span className="home-screen-demo">DEMO WORKSPACE</span>
+              <span>ResolveFlow / Demo workspace</span>
+              <span>Product preview</span>
             </div>
-            <div className="home-screen-image">
-              <img
-                key={active.id}
-                src={active.image}
-                alt={active.alt}
-                width="1440"
-                height="1000"
-                fetchPriority={view === "inbox" ? "high" : "auto"}
-              />
+            <div className="home-screen-image" ref={previewRef}>
+              {views.map((item, index) => (
+                <img
+                  key={item.id}
+                  src={item.image}
+                  alt={item.alt}
+                  hidden={view !== index}
+                  width="1440"
+                  height="1000"
+                  fetchPriority={index === 0 ? "high" : "auto"}
+                />
+              ))}
             </div>
           </div>
           <div className="home-screen-caption">
@@ -209,137 +250,68 @@ export function Home({ signedIn, navigate }: Props) {
             <span>Actual product screenshots. Synthetic demo data.</span>
           </div>
         </section>
-        <section className="home-container home-details">
-          <div className="home-section-intro">
-            <span className="home-label">THE DAILY WORK, CONSIDERED</span>
+        <section
+          id="workflow"
+          className="home-container home-workflow"
+          data-reveal
+        >
+          <div className="home-workflow-intro">
+            <span className="home-section-label">
+              A typical support request
+            </span>
             <h2>
-              A useful place for
+              From “can you help?”
               <br />
-              <em>the whole conversation.</em>
+              to a considered reply.
             </h2>
             <p>
-              Support work has a lot of moving parts. The workspace should help
-              you see them.
+              You don’t need to hand the whole conversation to AI. Use it for a
+              first draft, and keep the decisions with your team.
             </p>
-          </div>
-          <div className="home-detail-list">
-            <article>
-              <span>01</span>
-              <div>
-                <h3>Know who’s taking care of it.</h3>
-                <p>
-                  Assign requests, set priorities, and keep internal notes with
-                  the ticket. Find the context you need without starting the
-                  conversation over.
-                </p>
-              </div>
-            </article>
-            <article>
-              <span>02</span>
-              <div>
-                <h3>Keep the source within reach.</h3>
-                <p>
-                  Search approved policies and documents. Use an AI suggestion
-                  or write your own response, then inspect the evidence before
-                  making the call.
-                </p>
-              </div>
-            </article>
-            <article>
-              <span>03</span>
-              <div>
-                <h3>Be deliberate about what goes out.</h3>
-                <p>
-                  Review, edit, and approve a response before delivery. Keep its
-                  previous versions and the decisions that shaped the final
-                  reply.
-                </p>
-              </div>
-            </article>
-          </div>
-        </section>
-        <section id="workflow" className="home-workflow">
-          <div className="home-container">
-            <div className="home-workflow-heading">
-              <span className="home-label">HOW IT WORKS</span>
-              <h2>
-                A request comes in.
-                <br />
-                <em>You know what happens next.</em>
-              </h2>
-              <p>Four steps, with a person making the important decisions.</p>
-            </div>
-            <div className="home-steps">
-              {[
-                {
-                  n: "01",
-                  title: "Bring the request in",
-                  text: "Give it a ticket, a priority, and someone to look after it.",
-                },
-                {
-                  n: "02",
-                  title: "Check the knowledge",
-                  text: "Find an approved passage that actually supports the answer.",
-                },
-                {
-                  n: "03",
-                  title: "Review the response",
-                  text: "Make your edits. Approve the precise version you intend to use.",
-                },
-                {
-                  n: "04",
-                  title: "Confirm delivery",
-                  text: "Queue the approved reply, then follow its attempts and outcome.",
-                },
-              ].map((s) => (
-                <article key={s.n}>
-                  <span>{s.n}</span>
-                  <h3>{s.title}</h3>
-                  <p>{s.text}</p>
-                </article>
-              ))}
-            </div>
-            <p className="home-workflow-footnote">
-              AI suggests. Your team reviews. Sending a reply requires a
-              separate confirmation.
-            </p>
-          </div>
-        </section>
-        <section className="home-container home-team">
-          <div className="home-team-note">
-            <span className="home-label">A NOTE ON CONTROL</span>
-            <p>
-              Software can help with the work.
+            <div className="home-margin-note">
+              A source is useful.
               <br />
-              <em>The judgment stays with you.</em>
-            </p>
-          </div>
-          <div className="home-team-copy">
-            <p>
-              Each workspace has its own tickets, knowledge, and people. Owners
-              manage access, agents handle requests, and viewers follow the
-              work.
-            </p>
-            <p>
-              If a response changes, its approval is cleared. If a source is
-              withdrawn, the response needs another review. The history stays
-              there for your team to inspect.
-            </p>
-            <div className="home-role-line">
-              <span>Owner</span>
-              <span>Agent</span>
-              <span>Viewer</span>
+              <em>A person checks the details.</em>
             </div>
           </div>
+          <div className="home-process">
+            {[
+              [
+                "Bring the request in",
+                "Create a ticket with the customer’s question and email, or connect an intake webhook. Assign the person who will handle it.",
+              ],
+              [
+                "Draft with something to back it up",
+                "Search your approved policies. Generate a draft with cited passages, or write a response yourself.",
+              ],
+              [
+                "Check it. Then send it.",
+                "Read the sources, make your edits, and approve the reply. Confirm delivery separately and follow its status.",
+              ],
+            ].map(([title, text], i) => (
+              <article key={title}>
+                <span className="process-number">{i + 1}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </div>
+              </article>
+            ))}
+            <p className="home-delivery-note">
+              Email delivery needs a configured email service. Local demo mode
+              saves a capture instead.
+            </p>
+          </div>
         </section>
-        <section id="faq" className="home-container home-faq">
+        <section id="faq" className="home-container home-faq" data-reveal>
           <div>
-            <span className="home-label">BEFORE YOU START</span>
-            <h2>
-              A few practical
+            <span className="home-section-label">The practical bits</span>
+            <h2>Before you start.</h2>
+            <p>
+              A few things worth knowing
               <br />
-              <em>questions.</em>
-            </h2>
+              about the way it works.
+            </p>
           </div>
           <div className="home-faq-list">
             <details>
@@ -355,49 +327,60 @@ export function Home({ signedIn, navigate }: Props) {
               <p>
                 Yes. Write a manual response, attach approved source passages,
                 and submit it for review. Human-written responses are labelled
-                separately from AI-generated drafts.
+                separately.
               </p>
             </details>
             <details>
               <summary>Can businesses have separate workspaces?</summary>
               <p>
-                Yes. Tickets, documents, drafts, and workflows are scoped to a
-                workspace. Access depends on the person’s current membership and
-                role.
+                Yes. Each workspace has its own tickets, documents, and team.
+                Owners manage access, agents handle requests, and viewers have
+                read-only access.
+              </p>
+            </details>
+            <details>
+              <summary>How do customers submit a question?</summary>
+              <p>
+                Your team can create tickets manually, or connect a website or
+                service through the ticket webhook. A public customer form and
+                email inbox intake are not included yet.
               </p>
             </details>
             <details>
               <summary>What do I need to get started?</summary>
               <p>
-                Create a workspace and add your team and approved text or
-                Markdown policies. AI generation and email delivery work when
-                their service connections are configured.
+                Create a workspace and add your policies as text or Markdown.
+                Set up the AI and email service connections when you want to
+                generate drafts and send email.
               </p>
             </details>
           </div>
         </section>
-        <section className="home-container home-final">
+        <section className="home-container home-final" data-reveal>
           <div>
-            <span className="home-label">GIVE YOUR TEAM A CLEARER WORKDAY</span>
+            <span className="home-section-label">
+              Start with your next request
+            </span>
             <h2>
-              Good support.
+              Give it a place.
               <br />
-              <em>In good hands.</em>
+              Take it from there.
             </h2>
           </div>
-          <a className="home-button" href={start} onClick={go(start)}>
-            {signedIn ? "Open your workspace" : "Create your workspace"}
-          </a>
+          <div>
+            <a className="home-button" href={start} onClick={go(start)}>
+              {signedIn ? "Open your workspace" : "Create your workspace"}
+            </a>
+            <p>Bring a policy. Add a ticket. Try a draft.</p>
+          </div>
         </section>
       </main>
       <footer className="home-footer home-container">
         <a className="home-brand" href="/" onClick={go("/")}>
-          <Layers size={21} />
-          <span>
-            ResolveFlow<span className="home-brand-ai"> AI</span>
-          </span>
+          <LogoMark />
+          <span>ResolveFlow</span>
         </a>
-        <span>Built around the conversation.</span>
+        <span>Customer support, with context.</span>
         <div>
           <a href="#features">Product</a>
           <a href="#faq">FAQ</a>

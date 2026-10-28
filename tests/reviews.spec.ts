@@ -25,7 +25,7 @@ test("review queue binds approval to a version and keeps revision/rejection hist
       .getByRole("button", { name: "Create workspace", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: "Your support, in flow." }),
+      page.getByRole("heading", { name: "Ticket inbox" }),
     ).toBeVisible();
     const user = await db.user.findUniqueOrThrow({
       where: { email },

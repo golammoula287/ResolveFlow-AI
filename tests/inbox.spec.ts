@@ -1,3 +1,5 @@
+const apiOrigin = process.env.TEST_API_ORIGIN || "http://localhost:4000";
+const webOrigin = process.env.TEST_WEB_ORIGIN || "http://localhost:5173";
 import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 test("inbox supports pagination, filters, assignment, secure sign-in and mobile dialogs", async ({
@@ -17,16 +19,13 @@ test("inbox supports pagination, filters, assignment, secure sign-in and mobile 
     .getByRole("button", { name: "Create workspace", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Your support, in flow." }),
+    page.getByRole("heading", { name: "Ticket inbox" }),
   ).toBeVisible();
-  const me = await (
-    await page.request.get("http://localhost:4000/api/me")
-  ).json();
-  const base =
-    "http://localhost:4000/api/workspaces/" + me.memberships[0].workspaceId;
+  const me = await (await page.request.get(apiOrigin + "/api/me")).json();
+  const base = apiOrigin + "/api/workspaces/" + me.memberships[0].workspaceId;
   for (let i = 0; i < 21; i++) {
     const response = await page.request.post(base + "/tickets", {
-      headers: { Origin: "http://localhost:5173" },
+      headers: { Origin: webOrigin },
       data: {
         subject: `Searchable ticket ${String(i).padStart(2, "0")}`,
         customerEmail: "synthetic@example.test",
@@ -64,13 +63,13 @@ test("inbox supports pagination, filters, assignment, secure sign-in and mobile 
   await page.getByLabel(/^Password/).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Your support, in flow." }),
+    page.getByRole("heading", { name: "Ticket inbox" }),
   ).toBeVisible();
   await page.goto("/");
   await page.getByRole("link", { name: "Open workspace", exact: true }).click();
   await expect(page).toHaveURL("/app");
   await expect(
-    page.getByRole("heading", { name: "Your support, in flow." }),
+    page.getByRole("heading", { name: "Ticket inbox" }),
   ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "New ticket", exact: true }).click();

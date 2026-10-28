@@ -187,7 +187,7 @@ export function DraftCard({
       {!!d.citations.length && (
         <>
           <p className="hint">
-            Evidence from the generated draft. Edited claims need a fresh human
+          Cited evidence for this response. Edited claims need a fresh human
             check.
           </p>
           {d.citations.map((c, i) => (

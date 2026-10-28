@@ -7,7 +7,7 @@ test("public home explains the product and connects signup, signin and browser h
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Your support team, on the same page.",
+      name: "A good reply starts with the right context.",
     }),
   ).toBeVisible();
   await expect(
