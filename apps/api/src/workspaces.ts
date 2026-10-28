@@ -161,7 +161,7 @@ export function workspaceRoutes(app: Express, db: PrismaClient) {
             const token = randomBytes(32).toString("hex");
             const invitation = await tx.invitation.create({
               data: {
-                workspaceId,
+                workspace: { connect: { id: workspaceId } },
                 ...input,
                 tokenHash: hash(token),
                 expiresAt: new Date(Date.now() + 7 * 86400000),
